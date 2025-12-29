@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Image, Alert, StatusBar } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
 
@@ -10,12 +10,22 @@ type Props = {
 };
 
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
-    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleLogin = () => {
-        // No authentication logic as requested
-        navigation.navigate('Home');
+        if (!username || !password) {
+            Alert.alert('Error', 'Please enter both username and password.');
+            return;
+        }
+
+        // Hardcoded credentials as requested
+        if (username === 'admin' && password === 'zorphix') {
+            navigation.replace('Home');
+        } else {
+            Alert.alert('Error', 'Invalid credentials. Please try again.');
+        }
     };
 
     return (
@@ -23,33 +33,48 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={styles.container}
         >
+            <StatusBar barStyle="light-content" backgroundColor="#000000" />
             <View style={styles.formContainer}>
-                <Text style={styles.title}>Welcome to Zorphix</Text>
+                <View style={styles.logoContainer}>
+                    <Image
+                        source={require('../assets/zorphix-logo.png')}
+                        style={styles.logo}
+                        resizeMode="contain"
+                    />
+                </View>
+                <Text style={styles.title}>Zorphix Login</Text>
 
                 <View style={styles.inputContainer}>
-                    <Text style={styles.label}>Email / Username</Text>
+                    <Text style={styles.label}>Username</Text>
                     <TextInput
                         style={styles.input}
-                        placeholder="Enter your email"
-                        value={email}
-                        onChangeText={setEmail}
+                        placeholder="Enter username"
+                        placeholderTextColor="#666"
+                        value={username}
+                        onChangeText={setUsername}
                         autoCapitalize="none"
                     />
                 </View>
 
                 <View style={styles.inputContainer}>
                     <Text style={styles.label}>Password</Text>
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Enter your password"
-                        value={password}
-                        onChangeText={setPassword}
-                        secureTextEntry
-                    />
+                    <View style={styles.passwordContainer}>
+                        <TextInput
+                            style={styles.passwordInput}
+                            placeholder="Enter password"
+                            placeholderTextColor="#666"
+                            value={password}
+                            onChangeText={setPassword}
+                            secureTextEntry={!showPassword}
+                        />
+                        <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                            <Text style={{ color: '#FFD700' }}>{showPassword ? 'Hide' : 'Show'}</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 <TouchableOpacity style={styles.button} onPress={handleLogin}>
-                    <Text style={styles.buttonText}>Login</Text>
+                    <Text style={styles.buttonText}>LOGIN</Text>
                 </TouchableOpacity>
             </View>
         </KeyboardAvoidingView>
@@ -59,24 +84,34 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#ecf0f1',
+        backgroundColor: '#000000', // Black background
         justifyContent: 'center',
         padding: 20,
     },
     formContainer: {
-        backgroundColor: 'white',
+        backgroundColor: '#111',
         padding: 30,
         borderRadius: 15,
-        shadowColor: '#000',
+        borderWidth: 1,
+        borderColor: '#FFD700', // Gold border
+        shadowColor: '#FFD700',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.2,
         shadowRadius: 10,
         elevation: 5,
+    },
+    logoContainer: {
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    logo: {
+        width: 100,
+        height: 100,
     },
     title: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: '#2c3e50',
+        color: '#FFD700', // Gold Text
         marginBottom: 30,
         textAlign: 'center',
     },
@@ -85,26 +120,44 @@ const styles = StyleSheet.create({
     },
     label: {
         fontSize: 14,
-        color: '#7f8c8d',
+        color: '#FFD700',
         marginBottom: 5,
     },
     input: {
         borderWidth: 1,
-        borderColor: '#bdc3c7',
+        borderColor: '#333',
         borderRadius: 8,
         padding: 12,
         fontSize: 16,
-        backgroundColor: '#f9f9f9',
+        backgroundColor: '#000',
+        color: 'white',
+    },
+    passwordContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#333',
+        borderRadius: 8,
+        backgroundColor: '#000',
+    },
+    passwordInput: {
+        flex: 1,
+        padding: 12,
+        fontSize: 16,
+        color: 'white',
+    },
+    eyeIcon: {
+        padding: 10,
     },
     button: {
-        backgroundColor: '#3498db',
+        backgroundColor: '#FFD700',
         paddingVertical: 15,
         borderRadius: 8,
         alignItems: 'center',
-        marginTop: 10,
+        marginTop: 20,
     },
     buttonText: {
-        color: 'white',
+        color: '#000',
         fontSize: 18,
         fontWeight: 'bold',
     },

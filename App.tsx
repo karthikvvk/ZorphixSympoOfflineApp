@@ -2,8 +2,9 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import AppNavigator from './navigation/AppNavigator';
 import { StatusBar } from 'expo-status-bar';
+import { registerRootComponent } from 'expo';
 
-export default function App() {
+function App() {
     return (
         <NavigationContainer>
             <AppNavigator />
@@ -11,3 +12,7 @@ export default function App() {
         </NavigationContainer>
     );
 }
+
+export default App;
+
+registerRootComponent(App);

@@ -10,4 +10,7 @@ export type RootStackParamList = {
     Login: undefined;
     Home: undefined;
     EventDetail: { event: Event };
+    Registration: undefined;
+    QRScanner: undefined;
+    DatabaseViewer: undefined;
 };

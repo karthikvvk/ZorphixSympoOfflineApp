@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, StatusBar } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, StatusBar, Alert } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList, Event } from '../navigation/types';
 
@@ -52,11 +52,15 @@ const DUMMY_EVENTS: Event[] = [
 const HomeScreen: React.FC<Props> = ({ navigation }) => {
     const getCategoryColor = (category: string) => {
         switch (category) {
-            case 'Technical': return '#e74c3c';
-            case 'Workshop': return '#f1c40f';
-            case 'Non-Technical': return '#2ecc71';
+            case 'Technical': return '#B8860B'; // Dark Golden Rod
+            case 'Workshop': return '#DAA520'; // Golden Rod
+            case 'Non-Technical': return '#FFD700'; // Gold
             default: return '#95a5a6';
         }
+    };
+
+    const handleSync = () => {
+        Alert.alert("Sync", "Sync with Firebase is coming soon!");
     };
 
     const renderEventItem = ({ item }: { item: Event }) => (
@@ -66,8 +70,8 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         >
             <View style={styles.cardHeader}>
                 <Text style={styles.eventTitle}>{item.title}</Text>
-                <View style={[styles.badge, { backgroundColor: getCategoryColor(item.category) }]}>
-                    <Text style={styles.badgeText}>{item.category}</Text>
+                <View style={[styles.badge, { borderColor: getCategoryColor(item.category) }]}>
+                    <Text style={[styles.badgeText, { color: getCategoryColor(item.category) }]}>{item.category}</Text>
                 </View>
             </View>
             <Text style={styles.eventDate}>{item.date}</Text>
@@ -76,6 +80,16 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
+            <StatusBar barStyle="light-content" backgroundColor="#000000" />
+            <View style={styles.actionContainer}>
+                <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('DatabaseViewer')}>
+                    <Text style={styles.actionButtonText}>View Database</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.actionButton, styles.syncButton]} onPress={handleSync}>
+                    <Text style={styles.actionButtonText}>Sync Data</Text>
+                </TouchableOpacity>
+            </View>
+
             <FlatList
                 data={DUMMY_EVENTS}
                 renderItem={renderEventItem}
@@ -90,21 +104,46 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f6fa',
+        backgroundColor: '#000000',
+    },
+    actionContainer: {
+        flexDirection: 'row',
+        padding: 16,
+        justifyContent: 'space-between'
+    },
+    actionButton: {
+        flex: 1,
+        backgroundColor: '#111',
+        borderWidth: 1,
+        borderColor: '#FFD700',
+        padding: 10,
+        borderRadius: 8,
+        alignItems: 'center',
+        marginRight: 10
+    },
+    syncButton: {
+        marginRight: 0,
+        marginLeft: 10
+    },
+    actionButtonText: {
+        color: '#FFD700',
+        fontWeight: 'bold'
     },
     listContent: {
         padding: 16,
     },
     card: {
-        backgroundColor: 'white',
+        backgroundColor: '#111',
         borderRadius: 12,
         padding: 20,
         marginBottom: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
+        borderWidth: 1,
+        borderColor: '#333',
+        shadowColor: '#FFD700',
+        shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+        shadowRadius: 3,
+        elevation: 2,
     },
     cardHeader: {
         flexDirection: 'row',
@@ -115,23 +154,24 @@ const styles = StyleSheet.create({
     eventTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#2c3e50',
+        color: '#FFF',
         flex: 1,
     },
     badge: {
         paddingHorizontal: 10,
-        paddingVertical: 5,
+        paddingVertical: 4,
         borderRadius: 20,
         marginLeft: 10,
+        borderWidth: 1,
+        backgroundColor: 'transparent'
     },
     badgeText: {
-        color: 'white',
         fontSize: 12,
         fontWeight: 'bold',
     },
     eventDate: {
         fontSize: 14,
-        color: '#7f8c8d',
+        color: '#888',
     },
 });
 
