@@ -30,12 +30,12 @@ const AppNavigator = () => {
                     fontSize: 20,
                 },
                 cardStyle: { backgroundColor: '#000000' },
-                detachInactiveScreens: false,
                 ...(Platform.OS === 'web' && {
                     animationEnabled: false,
                     cardStyleInterpolator: CardStyleInterpolators.forNoAnimation,
                 }),
             }}
+            detachInactiveScreens={false}
         >
             <Stack.Screen
                 name="Login"
@@ -76,7 +76,7 @@ const AppNavigator = () => {
                 component={RecentRegistrationsScreen}
                 options={{ title: 'Newly Added' }}
             />
-        </Stack.Navigator>
+        </Stack.Navigator >
     );
 };
 

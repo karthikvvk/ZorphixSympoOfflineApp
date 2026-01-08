@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
-import { addUser } from '../services/Database';
+import { insertParticipant } from '../services/sqlite';
 
 type RegistrationScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Registration'>;
 

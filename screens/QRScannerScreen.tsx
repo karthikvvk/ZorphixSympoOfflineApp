@@ -3,7 +3,7 @@ import { Text, View, StyleSheet, Button, Alert, TouchableOpacity } from 'react-n
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
-import { getParticipantByUID, markCheckedIn } from '../services/Database';
+import { getParticipantByUID, markCheckedIn } from '../services/sqlite';
 
 type QRScannerScreenNavigationProp = StackNavigationProp<RootStackParamList, 'QRScanner'>;
 

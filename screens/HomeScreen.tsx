@@ -15,38 +15,52 @@ type Props = {
 const DUMMY_EVENTS: Event[] = [
     {
         id: '1',
-        title: 'Paper Presentation',
-        category: 'Technical',
+        title: 'Pixel Reforge',
+        category: 'Non-Technical',
         date: 'Oct 24, 2025',
-        description: 'Present your innovative ideas and research papers to a panel of experts. A great platform to showcase your technical prowess.'
+        description: ''
     },
     {
         id: '2',
-        title: 'Hackathon',
+        title: 'PromptCraft',
         category: 'Technical',
         date: 'Oct 25, 2025',
-        description: 'A 24-hour coding marathon where you solve real-world problems. forming teams of 3-4 members.'
+        description: ''
     },
     {
         id: '3',
-        title: 'Technical Quiz',
+        title: 'AlgoPulse',
         category: 'Technical',
         date: 'Oct 24, 2025',
-        description: 'Test your knowledge in various domains of computer science and engineering in this rapid-fire quiz event.'
+        description: ''
     },
     {
         id: '4',
-        title: 'Workshop on AI',
-        category: 'Workshop',
+        title: 'CodeBack',
+        category: 'Technical',
         date: 'Oct 26, 2025',
-        description: 'Hands-on workshop on Artificial Intelligence and Machine Learning basics. Bring your laptops!'
+        description: ''
     },
     {
         id: '5',
-        title: 'Gaming Event',
+        title: 'Sip to Survive',
         category: 'Non-Technical',
         date: 'Oct 25, 2025',
-        description: 'Compete in popular esports titles and win exciting prizes. Open to all gamers.'
+        description: ''
+    },
+    {
+        id: '6',
+        title: 'CodeCrypt',
+        category: 'Technical',
+        date: 'Oct 26, 2025',
+        description: ''
+    },
+    {
+        id: '7',
+        title: 'LinkLogic',
+        category: 'Technical',
+        date: 'Oct 26, 2025',
+        description: ''
     },
 ];
 
