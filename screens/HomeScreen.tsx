@@ -89,6 +89,18 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         navigation.navigate('QRScanner');
     };
 
+    const handleViewDatabase = () => {
+        closeMenu();
+        // Restrict access to specific admin account
+        const allowedEmail = 'admin@zorphix.com';
+
+        if (eventContext?.adminEmail === allowedEmail) {
+            navigation.navigate('DatabaseViewer');
+        } else {
+            Alert.alert('Access Denied', 'This feature is restricted to the main administrator only.');
+        }
+    };
+
     return (
         <View style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor="#000000" />
@@ -152,7 +164,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                     <Text style={styles.menuTitle}>Dashboard</Text>
                 </View>
 
-                <TouchableOpacity style={styles.menuItem} onPress={() => { closeMenu(); navigation.navigate('DatabaseViewer'); }}>
+                <TouchableOpacity style={styles.menuItem} onPress={handleViewDatabase}>
                     <Text style={styles.menuItemText}>📂  View Full Database</Text>
                 </TouchableOpacity>
 

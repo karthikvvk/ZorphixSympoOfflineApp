@@ -209,7 +209,7 @@ const RegistrationScreen: React.FC<Props> = ({ navigation, route }) => {
                 participantData.dept_other,
                 participantData.year,
                 'ONSPOT',
-                1, // synced (assuming onspot is effectively synced or we sync later)
+                0, // sync_status: 0 (unsynced) so it gets pushed to Firebase
                 1   // checked_in: yes
             );
 
