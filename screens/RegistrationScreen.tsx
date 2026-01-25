@@ -202,15 +202,16 @@ const RegistrationScreen: React.FC<Props> = ({ navigation, route }) => {
                 participantData.phone,
                 participantData.email,
                 participantData.college,
-                participantData.college_other,
                 participantData.degree,
-                participantData.degree_other,
                 participantData.dept,
-                participantData.dept_other,
                 participantData.year,
                 'ONSPOT',
-                0, // sync_status: 0 (unsynced) so it gets pushed to Firebase
-                1   // checked_in: yes
+                0, // sync_status: 0 (unsynced)
+                1, // payment_verified: 1 (since we are finalizing, it's either free or paid-verified)
+                1, // participated: 1 (Immediate check-in for on-spot)
+                '', // team_name
+                '', // team_members
+                isPaid ? 'paid' : 'free' // event_type
             );
 
             setSubmitting(false);
@@ -220,11 +221,10 @@ const RegistrationScreen: React.FC<Props> = ({ navigation, route }) => {
                 name: participantData.name,
                 email: participantData.email,
                 phone: participantData.phone,
-                college: participantData.college === 'Other' ? participantData.college_other : participantData.college,
-                dept: participantData.dept === 'Other' ? participantData.dept_other : participantData.dept,
+                college: participantData.college,
+                dept: participantData.dept,
                 year: participantData.year,
                 events: [eventId],
-                // Add payment info for QR generation if paid
                 payments: isPaid ? [{
                     eventNames: [eventId],
                     verified: true,
@@ -257,16 +257,18 @@ const RegistrationScreen: React.FC<Props> = ({ navigation, route }) => {
         // Use pre-filled UID if available (from QR scan), otherwise generate new one
         const uid = prefilledUID || `${eventId.replace(/\s+/g, '')}-ONSPOT-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
+        // Merge "Other" fields into main fields
+        const finalCollege = college === 'Other' ? collegeOther.trim() : college;
+        const finalDegree = degree === 'Other' ? degreeOther.trim() : degree;
+        const finalDept = department === 'Other' ? departmentOther.trim() : department;
+
         const participantData = {
             name: name.trim(),
             email: email.trim().toLowerCase(),
             phone: phone.trim(),
-            college,
-            college_other: collegeOther,
-            degree,
-            degree_other: degreeOther,
-            dept: department,
-            dept_other: departmentOther,
+            college: finalCollege,
+            degree: finalDegree,
+            dept: finalDept,
             year
         };
 

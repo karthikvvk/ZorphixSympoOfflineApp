@@ -131,22 +131,16 @@ const importParticipantsToDatabase = async (
                 phone,
                 email,
                 '', // college
-                '',
                 '', // degree
-                '',
                 '', // dept
-                '',
                 '', // year
-                'IMPORT', // Source as IMPORT so it shows in 'Newly Added'
-                1, // Already synced (assumed) OR 0 if we want it to push to firebase? 
-                // User said "add... to 'newly added users' list". 
-                // If we set 0, it pushes to Firebase. If we set 1, it assumes synced.
-                // Usually imports come from another device's export.
-                // If that device already synced, we shouldn't sync again.
-                // But "Newly Added Users" list query is `source IN ('ONSPOT', 'IMPORT')`.
-                // So it will show up regardless of sync_status.
-                // Let's keep sync_status=1 to safe.
-                0  // Not checked in
+                'IMPORT', // Source
+                1, // sync_status
+                0, // payment_verified
+                0, // participated
+                '', // team_name
+                '', // team_members
+                'free' // event_type
             );
 
             totalImported++;

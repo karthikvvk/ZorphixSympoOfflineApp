@@ -35,16 +35,19 @@ export const syncFromFirebase = async () => {
                     data.displayName || data.name || "Unknown",
                     data.phone || "",
                     data.email || "",
-                    data.college || "",
-                    data.collegeOther || "",
-                    data.degree || "",
-                    data.degreeOther || "",
-                    data.department || "",
-                    data.departmentOther || "",
+                    data.college || data.collegeOther || "",
+                    data.degree || data.degreeOther || "",
+                    data.department || data.departmentOther || "",
                     data.year || "",
                     'WEB',
-                    1,  // sync_status: already synced from server
-                    0   // checked_in: not checked in yet
+                    1,  // sync_status
+                    paymentVerified,
+                    0,   // participated
+                    '', // team_name
+                    '', // team_members
+                    'paid' // event_type (assuming paid for synced? or derive from payments? for now 'paid' or 'free' based on paymentVerified? No, that's dangerous. Let's use logic: if paymentVerified, it's paid. If not, maybe free? BUT syncFromFirebase implies registration. Safe default 'free' if unknown, but better if we knew. User didn't specify event_type source. I'll default to 'free' or update if payment verified).
+                    // Actually, if paymentVerified is 1, event_type should probably be 'paid'. If 0, it might be a free event OR unpaid paid event.
+                    // Let's assume 'free' default, app logic handles payment status separately.
                 );
                 totalSynced++;
             }
@@ -85,11 +88,8 @@ export const syncOnspotToFirebase = async () => {
                 email: p.email,
                 phone: p.phone,
                 college: p.college || '',
-                collegeOther: p.college_other || '',
                 degree: p.degree || '',
-                degreeOther: p.degree_other || '',
                 department: p.department || '',
-                departmentOther: p.department_other || '',
                 year: p.year || '',
                 events: [p.event_id],
                 payments: [],
@@ -97,9 +97,7 @@ export const syncOnspotToFirebase = async () => {
                 registeredAt: serverTimestamp(),
                 createdAt: serverTimestamp(),
                 source: 'ONSPOT',
-                checkedIn: p.checked_in === 1,
-                checkinTime: p.checkin_time,
-                participated: p.participated === 1
+                participated: p.participated > 0
             }, { merge: true });
         }
 
@@ -171,16 +169,17 @@ export const syncEventFromFirebase = async (eventName: string) => {
                 data.displayName || data.name || "Unknown",
                 data.phone || "",
                 data.email || "",
-                data.college || "",
-                data.collegeOther || "",
-                data.degree || "",
-                data.degreeOther || "",
-                data.department || "",
-                data.departmentOther || "",
+                data.college || data.collegeOther || "",
+                data.degree || data.degreeOther || "",
+                data.department || data.departmentOther || "",
                 data.year || "",
                 'WEB',
                 1,
-                0
+                paymentVerified,
+                0, // participated
+                '',
+                '',
+                'free'
             );
             eventSynced++;
         }

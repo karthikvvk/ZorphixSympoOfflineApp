@@ -4,7 +4,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList, PAID_EVENTS } from '../navigation/types';
 import { useEventContext } from '../navigation/EventContext';
-import { getParticipantByUID, getParticipantByUIDAndEvent, markParticipated, insertParticipant, checkParticipantExists } from '../services/sqlite';
+import { getParticipantByUID, getParticipantByUIDAndEvent, incrementParticipation, insertParticipant, checkParticipantExists } from '../services/sqlite';
 import { checkPaymentStatus, getParticipantFromFirebase, registerUserOnSpot } from '../services/firebase';
 import { Modal, Image } from 'react-native';
 import { RouteProp } from '@react-navigation/native';
@@ -71,8 +71,8 @@ export default function QRScannerScreen({ navigation, route }: Props) {
     };
 
     const finalizeEntry = (participant: any) => {
-        markParticipated(participant.uid, currentEvent);
-        console.log(`✅ Marked ${participant.name} as participated`);
+        incrementParticipation(participant.uid, currentEvent);
+        console.log(`✅ Incremented participation for ${participant.name}`);
 
         if (mode === 'TEAM') {
             const newCount = scannedCount + 1;
@@ -145,24 +145,27 @@ export default function QRScannerScreen({ navigation, route }: Props) {
                 console.log(`✅ User ${participant.name} found in DB.`);
 
                 // === ALREADY ATTENDED ===
-                if (participant.participated === 1) {
+                // === ALREADY ATTENDED (Counter Check) ===
+                // === ALREADY ATTENDED (Counter Check) ===
+                // === ALREADY ATTENDED (Counter Check) ===
+                if (participant.participated > 0) {
                     if (isPaidEvent) {
-                        // Paid event + already attended = NO re-entry
+                        // Paid event + already attended = NO re-entry (One Ticket) - NO "Enroll Anyway"
                         Alert.alert(
-                            "⚠️ Already Attended",
-                            `${participant.name} has already participated in ${currentEvent}.`,
+                            "🚫 Unauthorized Entry Blocked",
+                            `${participant.name} has already entered ${participant.participated} time(s).\n\nEvent: ${currentEvent}\n\nPaid events allow only ONE entry per ticket.`,
                             [{ text: "OK", onPress: resetScanState }]
                         );
                         return;
                     } else {
-                        // Non-paid event + already attended = Allow re-entry option
+                        // Non-paid event + already attended = Allow re-entry with warning
                         Alert.alert(
-                            "⚠️ Already Attended",
-                            `${participant.name} has already attended.\n\nAllow entry again?`,
+                            "⚠️ Re-attendance Detected",
+                            `${participant.name} has already attended ${participant.participated} time(s).\n\nEvent: ${currentEvent}\n\nAllow re-entry?`,
                             [
                                 { text: "Cancel", style: "cancel", onPress: resetScanState },
                                 {
-                                    text: "OK",
+                                    text: "Enroll Anyway",
                                     onPress: () => {
                                         finalizeEntry(participant);
                                     }
@@ -172,7 +175,6 @@ export default function QRScannerScreen({ navigation, route }: Props) {
                         return;
                     }
                 }
-
                 // === NOT ATTENDED YET ===
                 if (isPaidEvent) {
                     // Check payment status
@@ -246,15 +248,16 @@ export default function QRScannerScreen({ navigation, route }: Props) {
                         prefilledData.prefilledPhone || '',
                         prefilledData.prefilledEmail || '',
                         prefilledData.prefilledCollege || '',
-                        '',
                         '', // degree
-                        '',
                         prefilledData.prefilledDept || '',
-                        '',
                         prefilledData.prefilledYear || '',
                         'QR_AUTO',
-                        0, // payment_verified - not applicable for non-paid
-                        0  // participated - will be marked next
+                        0, // sync_status
+                        0, // payment_verified
+                        0, // participated
+                        '', // team_name
+                        '', // team_members
+                        'free' // event_type
                     );
 
                     // Fetch the newly inserted participant
@@ -306,15 +309,16 @@ export default function QRScannerScreen({ navigation, route }: Props) {
                     phone,
                     email,
                     college || '',
-                    '',
                     degree || '',
-                    '',
                     department || '',
-                    '',
                     year || '',
                     'ONSPOT',
+                    1, // sync_status
                     1, // payment_verified
-                    0  // NOT participated yet
+                    0, // participated
+                    '', // team_name
+                    '', // team_members
+                    'paid'
                 );
 
                 console.log(`✅ Payment verified for ${name}`);

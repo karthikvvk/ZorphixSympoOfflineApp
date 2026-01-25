@@ -45,27 +45,22 @@ export const initParticipantDB = () => {
     if (!db) return;
 
     try {
-        // 1. Check if we need to migrate to Composite PK
-        // We check if the table info shows 'pk' > 1 for just uid, or we check if we can insert dupes.
-        // Easier way: Check table definition or just rely on a specific migration flag.
-        // Let's check table info.
+        // Check current schema to see if we need migration
         const tableInfo = db.getAllSync(`PRAGMA table_info(participants);`);
-        const uidInfo = tableInfo.find((col: any) => col.name === 'uid');
-        const eventInfo = tableInfo.find((col: any) => col.name === 'event_id');
 
-        // If 'uid' is PK (pk=1) and 'event_id' is NOT part of PK (pk=0/undefined), we need migration
-        // Note: in composite PK, both would have pk > 0.
-        const isOldSchema = uidInfo?.pk === 1 && (!eventInfo?.pk || eventInfo?.pk === 0);
+        // Check if 'checked_in' exists (old schema) or 'event_type' missing (new schema target)
+        const hasCheckedIn = tableInfo.some((col: any) => col.name === 'checked_in');
+        const hasEventType = tableInfo.some((col: any) => col.name === 'event_type');
 
-        if (isOldSchema) {
-            console.log("⚡ Starting Schema Migration: Single PK -> Composite PK");
+        if (hasCheckedIn || !hasEventType) {
+            console.log("⚡ Starting Schema Migration: Refactoring to Simplified Schema");
 
             db.execSync('BEGIN TRANSACTION;');
             try {
                 // Rename old table
                 db.execSync(`ALTER TABLE participants RENAME TO participants_old;`);
 
-                // Create new table with Composite PK
+                // Create new table with Simplified Schema
                 db.execSync(
                     `CREATE TABLE participants (
                         uid TEXT,
@@ -74,41 +69,44 @@ export const initParticipantDB = () => {
                         phone TEXT,
                         email TEXT,
                         college TEXT,
-                        college_other TEXT,
                         degree TEXT,
-                        degree_other TEXT,
                         department TEXT,
-                        department_other TEXT,
                         year TEXT,
-                        checked_in INTEGER DEFAULT 0,
                         checkin_time TEXT,
-                        source TEXT DEFAULT 'WEB',
-                        sync_status INTEGER DEFAULT 1,
-                        payment_verified INTEGER DEFAULT 0,
+                        source TEXT,
+                        sync_status INTEGER,
+                        payment_verified INTEGER,
                         participated INTEGER DEFAULT 0,
+                        team_name TEXT,
+                        team_members TEXT,
+                        event_type TEXT DEFAULT 'free',
                         PRIMARY KEY (uid, event_id)
                     );`
                 );
 
-                // Copy data
-                // We need to be careful about columns matching. 
-                // The old table might check miss some columns if we just added them via ALTER.
-                // Best to list columns specifically if we can, but 'SELECT *' usually works if structure matches loosely.
-                // Safest is to insert common columns.
+                // Copy data with transformations
+                // Merge _other fields into main fields
+                // Drop checked_in
+                // Default event_type to 'free' (or 'paid' if we could guess, but 'free' is safer default)
+                // participated is kept as is (0 or 1, which fits the counter model as starting point)
                 db.execSync(`
                     INSERT INTO participants (
                         uid, event_id, name, phone, email, 
-                        college, college_other, degree, degree_other, 
-                        department, department_other, year, 
-                        checked_in, checkin_time, source, sync_status, 
-                        payment_verified, participated
+                        college, degree, department, year, 
+                        checkin_time, source, sync_status, 
+                        payment_verified, participated,
+                        team_name, team_members, event_type
                     )
                     SELECT 
                         uid, event_id, name, phone, email, 
-                        college, college_other, degree, degree_other, 
-                        department, department_other, year, 
-                        checked_in, checkin_time, source, sync_status, 
-                        payment_verified, participated
+                        COALESCE(NULLIF(college, ''), college_other) as college, 
+                        COALESCE(NULLIF(degree, ''), degree_other) as degree, 
+                        COALESCE(NULLIF(department, ''), department_other) as department, 
+                        year, 
+                        checkin_time, source, sync_status, 
+                        payment_verified, participated,
+                        team_name, team_members, 
+                        'free'
                     FROM participants_old;
                 `);
 
@@ -116,13 +114,13 @@ export const initParticipantDB = () => {
                 db.execSync(`DROP TABLE participants_old;`);
 
                 db.execSync('COMMIT;');
-                console.log("✅ Schema Migration Complete: Composite PK enabled.");
+                console.log("✅ Schema Migration Complete: Schema Simplified.");
             } catch (migrationError) {
                 console.error("Migration failed, rolling back", migrationError);
                 db.execSync('ROLLBACK;');
             }
         } else {
-            // Ensure table exists if fresh install
+            // Create table if not exists (Fresh Install)
             db.execSync(
                 `CREATE TABLE IF NOT EXISTS participants (
                     uid TEXT,
@@ -131,53 +129,21 @@ export const initParticipantDB = () => {
                     phone TEXT,
                     email TEXT,
                     college TEXT,
-                    college_other TEXT,
                     degree TEXT,
-                    degree_other TEXT,
                     department TEXT,
-                    department_other TEXT,
                     year TEXT,
-                    checked_in INTEGER DEFAULT 0,
                     checkin_time TEXT,
-                    source TEXT DEFAULT 'WEB',
-                    sync_status INTEGER DEFAULT 1,
-                    payment_verified INTEGER DEFAULT 0,
+                    source TEXT,
+                    sync_status INTEGER,
+                    payment_verified INTEGER,
                     participated INTEGER DEFAULT 0,
+                    team_name TEXT,
+                    team_members TEXT,
+                    event_type TEXT DEFAULT 'free',
                     PRIMARY KEY (uid, event_id)
                 );`
             );
         }
-
-        // Schema Migration: Add columns if they requested but missing (for existing apps)
-        // This is safe to run even after the big migration above, as it checks existence.
-        const columnsToAdd = [
-            "college TEXT",
-            "college_other TEXT",
-            "degree TEXT",
-            "degree_other TEXT",
-            "department TEXT",
-            "department_other TEXT",
-            "year TEXT",
-            "checked_in INTEGER DEFAULT 0",
-            "checkin_time TEXT",
-            "source TEXT DEFAULT 'WEB'",
-            "sync_status INTEGER DEFAULT 1",
-            "payment_verified INTEGER DEFAULT 0",
-            "participated INTEGER DEFAULT 0",
-            "team_name TEXT",
-            "team_members TEXT"
-        ];
-
-        columnsToAdd.forEach(colDef => {
-            try {
-                const colName = colDef.split(' ')[0];
-                db.execSync(`ALTER TABLE participants ADD COLUMN ${colDef};`);
-            } catch (e: any) {
-                if (!e.message?.includes('duplicate column name')) {
-                    // console.log(`Column exists or error: ${e.message}`);
-                }
-            }
-        });
 
     } catch (e) {
         console.error("Failed to init DB", e);
@@ -206,7 +172,7 @@ export const checkParticipantExists = async (email: string, phone: string, event
     }
 };
 
-// Insert a participant with extended fields
+// Insert a participant with simplified schema
 export const insertParticipant = (
     uid: string,
     event_id: string,
@@ -214,28 +180,26 @@ export const insertParticipant = (
     phone: string,
     email: string,
     college: string = '',
-    college_other: string = '',
     degree: string = '',
-    degree_other: string = '',
     department: string = '',
-    department_other: string = '',
     year: string = '',
-    source: 'WEB' | 'ONSPOT' | 'IMPORT' = 'WEB',
+    source: 'WEB' | 'ONSPOT' | 'IMPORT' | 'QR_AUTO' = 'WEB',
     sync_status: number = 1,
-    checked_in: number = 0,
+    payment_verified: number = 0,
+    participated: number = 0,
     team_name: string = '',
-    team_members: string = '' // Store as JSON string or comma separated
+    team_members: string = '',
+    event_type: 'free' | 'paid' = 'free'
 ) => {
     if (Platform.OS === 'web') {
         const exists = webParticipants.find(p => p.uid === uid && p.event_id === event_id);
         if (!exists) {
             webParticipants.push({
                 uid, event_id, name, phone, email,
-                college, college_other, degree, degree_other,
-                department, department_other, year,
-                source, sync_status, checked_in, checkin_time: null,
-                payment_verified: 0, participated: 0,
-                team_name, team_members
+                college, degree, department, year,
+                source, sync_status, checkin_time: null,
+                payment_verified, participated,
+                team_name, team_members, event_type
             });
             saveWebData();
         }
@@ -246,11 +210,11 @@ export const insertParticipant = (
     try {
         db.runSync(
             `INSERT OR IGNORE INTO participants 
-            (uid, event_id, name, phone, email, college, college_other, degree, degree_other, 
-             department, department_other, year, source, sync_status, checked_in, team_name, team_members) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
-            [uid, event_id, name, phone, email, college, college_other, degree, degree_other,
-                department, department_other, year, source, sync_status, checked_in, team_name, team_members]
+            (uid, event_id, name, phone, email, college, degree, 
+             department, year, source, sync_status, payment_verified, participated, team_name, team_members, event_type) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+            [uid, event_id, name, phone, email, college, degree,
+                department, year, source, sync_status, payment_verified, participated, team_name, team_members, event_type]
         );
     } catch (e) {
         console.error("Insert failed", e);
@@ -306,42 +270,16 @@ export const getParticipantByUIDAndEvent = async (uid: string, eventId: string):
 };
 
 // Mark participant as checked in
-export const markCheckedIn = (uid: string, eventId?: string) => {
-    if (Platform.OS === 'web') {
-        const p = webParticipants.find(p => p.uid === uid && (!eventId || p.event_id === eventId));
-        if (p) {
-            p.checked_in = 1;
-            p.checkin_time = new Date().toISOString();
-            saveWebData();
-        }
-        return;
-    }
-    if (!db) return;
-    if (!eventId) {
-        console.warn("markCheckedIn called without eventId, might affect multiple records");
-    }
-
-    const timestamp = new Date().toISOString();
-    try {
-        db.runSync(
-            `UPDATE participants 
-             SET checked_in = 1, checkin_time = ? 
-             WHERE uid = ? ${eventId ? 'AND event_id = ?' : ''};`,
-            eventId ? [timestamp, uid, eventId] : [timestamp, uid]
-        );
-    } catch (e) {
-        console.error("Check-in failed", e);
-    }
-};
+// DELETE markCheckedIn - Logic merged into incrementParticipation
 
 // Mark participant as participated (verified and allowed entry)
 // !! CRITICAL: Must scope by event_id now
-export const markParticipated = (uid: string, eventId?: string) => {
+// Increment participation count (Attendance)
+export const incrementParticipation = (uid: string, eventId: string) => {
     if (Platform.OS === 'web') {
-        const p = webParticipants.find(p => p.uid === uid && (!eventId || p.event_id === eventId));
+        const p = webParticipants.find(p => p.uid === uid && p.event_id === eventId);
         if (p) {
-            p.participated = 1;
-            p.checked_in = 1;
+            p.participated = (p.participated || 0) + 1;
             p.checkin_time = new Date().toISOString();
             saveWebData();
         }
@@ -349,21 +287,17 @@ export const markParticipated = (uid: string, eventId?: string) => {
     }
     if (!db) return;
 
-    // We should really require eventId here to be safe
-    // But for backward compat, we handle optional (though it's risky)
-
     const timestamp = new Date().toISOString();
     try {
+        // Increment participated count and update checkin_time
         const query = `UPDATE participants 
-             SET participated = 1, checked_in = 1, checkin_time = ? 
-             WHERE uid = ? ${eventId ? 'AND event_id = ?' : ''};`;
+             SET participated = participated + 1, checkin_time = ? 
+             WHERE uid = ? AND event_id = ?;`;
 
-        const params = eventId ? [timestamp, uid, eventId] : [timestamp, uid];
-
-        db.runSync(query, params);
-        console.log(`Marked participated: ${uid} for ${eventId || 'any'}`);
+        db.runSync(query, [timestamp, uid, eventId]);
+        console.log(`Incremented participation: ${uid} for ${eventId}`);
     } catch (e) {
-        console.error("Mark participated failed", e);
+        console.error("Increment participation failed", e);
     }
 };
 
@@ -482,10 +416,11 @@ export const getOnSpotParticipants = async (): Promise<any[]> => {
 };
 
 // Get count of participants for an event
+// Get count of participants for an event
 export const getEventParticipantCount = async (eventId: string): Promise<{ total: number; checkedIn: number }> => {
     if (Platform.OS === 'web') {
         const eventParticipants = webParticipants.filter(p => p.event_id === eventId);
-        const checkedIn = eventParticipants.filter(p => p.checked_in === 1).length;
+        const checkedIn = eventParticipants.filter(p => (p.participated || 0) > 0).length;
         return { total: eventParticipants.length, checkedIn };
     }
     if (!db) return { total: 0, checkedIn: 0 };
@@ -495,8 +430,9 @@ export const getEventParticipantCount = async (eventId: string): Promise<{ total
             `SELECT COUNT(*) as count FROM participants WHERE event_id = ?;`,
             [eventId]
         );
+        // Checked in means participated count > 0
         const checkedInResult = db.getFirstSync(
-            `SELECT COUNT(*) as count FROM participants WHERE event_id = ? AND checked_in = 1;`,
+            `SELECT COUNT(*) as count FROM participants WHERE event_id = ? AND participated > 0;`,
             [eventId]
         );
         return {
