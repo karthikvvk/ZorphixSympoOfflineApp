@@ -119,8 +119,10 @@ const styles = StyleSheet.create({
         paddingVertical: 12
     },
     individualButtonText: {
-        color: '#888',
+        color: '#ffffffff',
         fontSize: 16,
-        textAlign: 'center'
+        textAlign: 'center',
+        fontWeight: 'bold',
+        textDecorationLine: 'underline'
     }
 });

@@ -114,11 +114,11 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         // Restrict access to specific admin account
         const allowedEmail = 'admin@zorphix.com';
 
-        // if (eventContext?.adminEmail === allowedEmail) {
-        navigation.navigate('DatabaseViewer');
-        // } else {
-        // Alert.alert('Access Denied', 'This feature is restricted to the main administrator only.');
-        // }
+        if (eventContext?.adminEmail === allowedEmail) {
+            navigation.navigate('DatabaseViewer');
+        } else {
+            Alert.alert('Access Denied', 'This feature is restricted to the main administrator only.');
+        }
     };
 
     return (

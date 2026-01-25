@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Text, View, StyleSheet, Alert, TouchableOpacity, ActivityIndicator, Animated } from 'react-native';
+import { Text, View, StyleSheet, Alert, TouchableOpacity, ActivityIndicator, Animated, Modal, Image } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList, PAID_EVENTS } from '../navigation/types';
 import { useEventContext } from '../navigation/EventContext';
 import { getParticipantByUID, getParticipantByUIDAndEvent, incrementParticipation, insertParticipant, checkParticipantExists } from '../services/sqlite';
 import { checkPaymentStatus, getParticipantFromFirebase, registerUserOnSpot } from '../services/firebase';
-import { Modal, Image } from 'react-native';
+// import { Modal, Image } from 'react-native'; // Removed redundant import
 import { RouteProp } from '@react-navigation/native';
 
 type QRScannerScreenNavigationProp = StackNavigationProp<RootStackParamList, 'QRScanner'>;
@@ -32,6 +33,10 @@ export default function QRScannerScreen({ navigation, route }: Props) {
     // Payment Modal State
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [pendingParticipant, setPendingParticipant] = useState<any>(null);
+
+    // Success Modal State
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [successData, setSuccessData] = useState<{ name: string; message: string; subMessage?: string }>({ name: '', message: '' });
 
     // Toast State
     const [toastVisible, setToastVisible] = useState(false);
@@ -82,15 +87,38 @@ export default function QRScannerScreen({ navigation, route }: Props) {
             setScannedCount(newCount);
 
             if (newCount >= totalTeamSize) {
-                showToast(`🎉 All ${totalTeamSize} members verified!`, 'success');
-                setTimeout(() => navigation.goBack(), 3000);
+                setSuccessData({
+                    name: 'Team Complete!',
+                    message: `All ${totalTeamSize} members verified.`,
+                    subMessage: 'Redirecting...'
+                });
+                setShowSuccessModal(true);
+                setTimeout(() => {
+                    setShowSuccessModal(false);
+                    navigation.goBack();
+                }, 2500);
             } else {
-                showToast(`✅ ${participant.name} verified (${newCount}/${totalTeamSize})`, 'success');
-                resetScanState();
+                setSuccessData({
+                    name: participant.name,
+                    message: 'Verified Successfully',
+                    subMessage: `Team Progress: ${newCount}/${totalTeamSize}`
+                });
+                setShowSuccessModal(true);
+                setTimeout(() => {
+                    setShowSuccessModal(false);
+                    resetScanState();
+                }, 2000);
             }
         } else {
-            showToast(`✅ ${participant.name} enrolled successfully!`, 'success');
-            resetScanState();
+            setSuccessData({
+                name: participant.name,
+                message: 'Enrolled Successfully'
+            });
+            setShowSuccessModal(true);
+            setTimeout(() => {
+                setShowSuccessModal(false);
+                resetScanState();
+            }, 2000);
         }
     };
 
@@ -359,7 +387,7 @@ export default function QRScannerScreen({ navigation, route }: Props) {
         return (
             <View style={styles.container}>
                 <View style={styles.permissionContainer}>
-                    <Text style={styles.permissionIcon}>📷</Text>
+                    <MaterialCommunityIcons name="camera-off" size={64} color="#FFD700" style={{ marginBottom: 20 }} />
                     <Text style={styles.text}>Camera Permission Required</Text>
                     <Text style={styles.subText}>We need camera access to scan QR codes</Text>
                     <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
@@ -367,7 +395,7 @@ export default function QRScannerScreen({ navigation, route }: Props) {
                     </TouchableOpacity>
                 </View>
                 <TouchableOpacity style={styles.closeButton} onPress={() => navigation.goBack()}>
-                    <Text style={styles.closeText}>Close</Text>
+                    <MaterialCommunityIcons name="close" size={24} color="#FFD700" />
                 </TouchableOpacity>
             </View>
         );
@@ -420,7 +448,7 @@ export default function QRScannerScreen({ navigation, route }: Props) {
 
             {/* Close Button */}
             <TouchableOpacity style={styles.closeButton} onPress={() => navigation.goBack()}>
-                <Text style={styles.closeText}>✕</Text>
+                <MaterialCommunityIcons name="close" size={24} color="#FFD700" />
             </TouchableOpacity>
 
             {/* Toast Notification */}
@@ -471,7 +499,10 @@ export default function QRScannerScreen({ navigation, route }: Props) {
                             {processing ? (
                                 <ActivityIndicator color="#fff" />
                             ) : (
-                                <Text style={styles.payCashButtonText}>✅ Payment Verified - Enroll User</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <MaterialCommunityIcons name="check-circle" size={20} color="#fff" style={{ marginRight: 8 }} />
+                                    <Text style={styles.payCashButtonText}>Payment Verified - Enroll User</Text>
+                                </View>
                             )}
                         </TouchableOpacity>
 
@@ -482,6 +513,27 @@ export default function QRScannerScreen({ navigation, route }: Props) {
                         >
                             <Text style={styles.cancelButtonText}>Cancel</Text>
                         </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Success Modal */}
+            <Modal
+                visible={showSuccessModal}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => { }} // Cannot close manually, waits for timeout
+            >
+                <View style={styles.modalContainer}>
+                    <View style={[styles.modalContent, styles.successModalContent]}>
+                        <MaterialCommunityIcons name="check-decagram" size={80} color="#4CAF50" style={{ marginBottom: 20 }} />
+
+                        <Text style={styles.successName}>{successData.name}</Text>
+                        <Text style={styles.successMessage}>{successData.message}</Text>
+
+                        {successData.subMessage && (
+                            <Text style={styles.successSubMessage}>{successData.subMessage}</Text>
+                        )}
                     </View>
                 </View>
             </Modal>
@@ -589,10 +641,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 40,
     },
-    permissionIcon: {
-        fontSize: 64,
-        marginBottom: 20,
-    },
+    // permissionIcon style removed
     text: {
         color: '#FFD700',
         textAlign: 'center',
@@ -628,11 +677,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    closeText: {
-        color: '#FFD700',
-        fontWeight: 'bold',
-        fontSize: 18,
-    },
+    // closeText removed
     toast: {
         position: 'absolute',
         top: 120,
@@ -735,5 +780,29 @@ const styles = StyleSheet.create({
     cancelButtonText: {
         color: '#AAA',
         fontSize: 16
+    },
+    successModalContent: {
+        borderWidth: 2,
+        borderColor: '#4CAF50',
+        paddingVertical: 40
+    },
+    successName: {
+        color: '#FFF',
+        fontSize: 22,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginBottom: 8
+    },
+    successMessage: {
+        color: '#4CAF50',
+        fontSize: 18,
+        fontWeight: '600',
+        textAlign: 'center',
+        marginBottom: 8
+    },
+    successSubMessage: {
+        color: '#AAA',
+        fontSize: 14,
+        textAlign: 'center'
     }
 });
