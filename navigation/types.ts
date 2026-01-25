@@ -19,6 +19,8 @@ export type RootStackParamList = {
     QRScanner: {
         mode?: 'INDIVIDUAL' | 'TEAM';
         teamSize?: number;
+        teamName?: string; // Add team name parameter
+
     } | undefined;
     DatabaseViewer: undefined;
     RecentRegistrations: undefined;

@@ -275,12 +275,16 @@ export const getParticipantByUIDAndEvent = async (uid: string, eventId: string):
 // Mark participant as participated (verified and allowed entry)
 // !! CRITICAL: Must scope by event_id now
 // Increment participation count (Attendance)
-export const incrementParticipation = (uid: string, eventId: string) => {
+// Increment participation count (Attendance) with optional team name
+export const incrementParticipation = (uid: string, eventId: string, teamName?: string) => {
     if (Platform.OS === 'web') {
         const p = webParticipants.find(p => p.uid === uid && p.event_id === eventId);
         if (p) {
             p.participated = (p.participated || 0) + 1;
             p.checkin_time = new Date().toISOString();
+            if (teamName) {
+                p.team_name = teamName;
+            }
             saveWebData();
         }
         return;
@@ -289,13 +293,29 @@ export const incrementParticipation = (uid: string, eventId: string) => {
 
     const timestamp = new Date().toISOString();
     try {
-        // Increment participated count and update checkin_time
-        const query = `UPDATE participants 
-             SET participated = participated + 1, checkin_time = ? 
-             WHERE uid = ? AND event_id = ?;`;
+        let query: string;
+        let params: any[];
 
-        db.runSync(query, [timestamp, uid, eventId]);
-        console.log(`Incremented participation: ${uid} for ${eventId}`);
+        if (teamName) {
+            query = `UPDATE participants 
+                     SET participated = participated + 1, 
+                         checkin_time = ?, 
+                         team_name = ?,
+                         sync_status = 0
+                     WHERE uid = ? AND event_id = ?;`;
+            params = [timestamp, teamName, uid, eventId];
+            console.log(`Incremented participation: ${uid} for ${eventId} (Team: ${teamName})`);
+        } else {
+            query = `UPDATE participants 
+                     SET participated = participated + 1, 
+                         checkin_time = ?,
+                         sync_status = 0
+                     WHERE uid = ? AND event_id = ?;`;
+            params = [timestamp, uid, eventId];
+            console.log(`Incremented participation: ${uid} for ${eventId}`);
+        }
+
+        db.runSync(query, params);
     } catch (e) {
         console.error("Increment participation failed", e);
     }
