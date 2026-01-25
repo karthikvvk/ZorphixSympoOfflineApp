@@ -318,50 +318,50 @@ const RegistrationScreen: React.FC<Props> = ({ navigation, route }) => {
                     Please ask the participant to take a photo of this QR code.
                 </Text>
 
-                <TouchableOpacity
-                    style={styles.button}
-                    onPress={() => {
-                        // Reset form
-                        setName('');
-                        setEmail('');
-                        setPhone('');
-                        setCollege('');
-                        setCollegeOther('');
-                        setDegree('');
-                        setDegreeOther('');
-                        setDepartment('');
-                        setDepartmentOther('');
-                        setYear('');
-                        setRegisteredData(null);
-                        setShowSuccess(false);
-                        navigation.goBack(); // Optional: go back to scanner? Or stay for next?
-                        // Actually improved flow: 'Register Another' resets, 'Done' goes back.
-                        // Let's offer those two options.
-                    }}
-                >
-                    <Text style={styles.buttonText}>Done (Go Back)</Text>
-                </TouchableOpacity>
+                <View style={styles.successButtonContainer}>
+                    <TouchableOpacity
+                        style={[styles.button, styles.successButton]}
+                        onPress={() => {
+                            // Reset form
+                            setName('');
+                            setEmail('');
+                            setPhone('');
+                            setCollege('');
+                            setCollegeOther('');
+                            setDegree('');
+                            setDegreeOther('');
+                            setDepartment('');
+                            setDepartmentOther('');
+                            setYear('');
+                            setRegisteredData(null);
+                            setShowSuccess(false);
+                            navigation.goBack();
+                        }}
+                    >
+                        <Text style={styles.buttonText}>Done</Text>
+                    </TouchableOpacity>
 
-                <TouchableOpacity
-                    style={[styles.button, { backgroundColor: '#333', marginTop: 16 }]}
-                    onPress={() => {
-                        // Reset form and stay
-                        setName('');
-                        setEmail('');
-                        setPhone('');
-                        setCollege('');
-                        setCollegeOther('');
-                        setDegree('');
-                        setDegreeOther('');
-                        setDepartment('');
-                        setDepartmentOther('');
-                        setYear('');
-                        setRegisteredData(null);
-                        setShowSuccess(false);
-                    }}
-                >
-                    <Text style={[styles.buttonText, { color: '#FFF' }]}>Register Another</Text>
-                </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.button, styles.successButton, { backgroundColor: '#333', marginTop: 0 }]}
+                        onPress={() => {
+                            // Reset form and stay
+                            setName('');
+                            setEmail('');
+                            setPhone('');
+                            setCollege('');
+                            setCollegeOther('');
+                            setDegree('');
+                            setDegreeOther('');
+                            setDepartment('');
+                            setDepartmentOther('');
+                            setYear('');
+                            setRegisteredData(null);
+                            setShowSuccess(false);
+                        }}
+                    >
+                        <Text style={[styles.buttonText, { color: '#FFF' }]}>Add Another</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
         );
     }
@@ -828,6 +828,17 @@ const styles = StyleSheet.create({
     cancelButtonText: {
         color: '#FF5252',
         fontSize: 16
+    },
+    successButtonContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        width: '100%',
+        marginTop: 20,
+        gap: 10
+    },
+    successButton: {
+        flex: 1,
+        marginTop: 0
     }
 });
 
