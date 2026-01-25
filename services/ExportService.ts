@@ -4,60 +4,82 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 
 // QR code size limits (in characters for safe encoding)
-const MAX_QR_SIZE = 1800; // Safe limit for reliable QR scanning
+// QR code size limits (in characters for safe encoding)
+const MAX_QR_SIZE = 2200; // Increased limit slightly for better density
 
 export interface ExportData {
     part: number;
     total: number;
     event: string;
     timestamp: string;
-    emails: string[];
+    // Array of [name, phone, email] for compactness
+    items: [string, string, string][];
 }
 
 export interface ExportResult {
     qrDataArray: string[];
     totalParts: number;
-    totalEmails: number;
+    totalParticipants: number;
 }
 
 /**
- * Export all local participant emails as QR-encoded JSON
+ * Export all local participant data (Name, Phone, Email) as QR-encoded JSON
  * Splits into multiple parts if data is too large
  */
 export const exportLocalData = async (eventName: string): Promise<ExportResult> => {
     try {
         // Get all participants from local DB
-        const participants = await getAllParticipants();
+        const allParticipants = await getAllParticipants();
 
-        // Extract unique emails
-        const emails = [...new Set(participants.map(p => p.email).filter(Boolean))];
+        // Deduplicate based on Email AND Phone
+        // If multiple entries share keys, we take the first one found
+        const uniqueMap = new Map<string, any>();
 
-        if (emails.length === 0) {
+        allParticipants.forEach(p => {
+            if (!p.email && !p.phone) return;
+            const key = `${p.email?.toLowerCase() || ''}_${p.phone || ''}`;
+            if (!uniqueMap.has(key)) {
+                uniqueMap.set(key, p);
+            }
+        });
+
+        const uniqueParticipants = Array.from(uniqueMap.values());
+
+        if (uniqueParticipants.length === 0) {
             return {
                 qrDataArray: [],
                 totalParts: 0,
-                totalEmails: 0
+                totalParticipants: 0
             };
         }
+
+        // Prepare items for export: [name, phone, email]
+        const exportItems: [string, string, string][] = uniqueParticipants.map(p => [
+            p.name || '',
+            p.phone || '',
+            p.email || ''
+        ]);
 
         // Calculate chunk size based on JSON structure overhead
         const testData: ExportData = {
             part: 1,
-            total: 1,
+            total: 100,
             event: eventName,
             timestamp: new Date().toISOString(),
-            emails: ['test@example.com']
+            items: [['Test Name', '1234567890', 'test@example.com']]
         };
 
-        const baseSize = JSON.stringify(testData).length - 18; // Subtract email length
-        const availableSize = MAX_QR_SIZE - baseSize;
-        const avgEmailSize = 25; // Average email length
-        const emailsPerChunk = Math.floor(availableSize / avgEmailSize);
+        const baseOverhead = JSON.stringify(testData).length - JSON.stringify(testData.items).length;
+        const itemOverhead = 4; // ["","",""], basically
+        const avgItemSize = 60 + itemOverhead; // Estimate: Name(15) + Phone(10) + Email(25) + overhead
 
-        // Split emails into chunks
-        const chunks: string[][] = [];
-        for (let i = 0; i < emails.length; i += emailsPerChunk) {
-            chunks.push(emails.slice(i, i + emailsPerChunk));
+        const availableSize = MAX_QR_SIZE - baseOverhead;
+        const itemsPerChunk = Math.floor(availableSize / avgItemSize);
+
+        // Split items into chunks
+        const chunks: [string, string, string][][] = [];
+        for (let i = 0; i < exportItems.length; i += itemsPerChunk) {
+            chunks.push(exportItems.slice(i, i + itemsPerChunk));
         }
 
         // Generate QR data for each chunk
@@ -67,7 +89,7 @@ export const exportLocalData = async (eventName: string): Promise<ExportResult> 
                 total: chunks.length,
                 event: eventName,
                 timestamp: new Date().toISOString(),
-                emails: chunk
+                items: chunk
             };
             return JSON.stringify(data);
         });
@@ -75,7 +97,7 @@ export const exportLocalData = async (eventName: string): Promise<ExportResult> 
         return {
             qrDataArray,
             totalParts: chunks.length,
-            totalEmails: emails.length
+            totalParticipants: uniqueParticipants.length
         };
     } catch (error) {
         console.error('Export failed:', error);

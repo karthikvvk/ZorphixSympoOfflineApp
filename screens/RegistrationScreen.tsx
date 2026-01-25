@@ -722,6 +722,7 @@ const styles = StyleSheet.create({
         color: '#000',
         fontSize: 18,
         fontWeight: 'bold',
+        padding: 10,
     },
     successContainer: {
         flex: 1,
@@ -762,22 +763,22 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 20
     },
-    modalContent: {
-        backgroundColor: '#1E1E1E',
-        borderRadius: 20,
-        padding: 24,
-        alignItems: 'center',
-        width: '100%',
-        maxWidth: 340,
-        borderWidth: 1,
-        borderColor: '#333'
-    },
-    modalTitle: {
-        color: '#FFD700',
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 8
-    },
+    // modalContent: {
+    //     backgroundColor: '#1E1E1E',
+    //     borderRadius: 20,
+    //     padding: 24,
+    //     alignItems: 'center',
+    //     width: '100%',
+    //     maxWidth: 340,
+    //     borderWidth: 1,
+    //     borderColor: '#333'
+    // },
+    // modalTitle: {
+    //     color: '#FFD700',
+    //     fontSize: 24,
+    //     fontWeight: 'bold',
+    //     marginBottom: 8
+    // },
     modalSubtitle: {
         color: '#AAA',
         fontSize: 16,

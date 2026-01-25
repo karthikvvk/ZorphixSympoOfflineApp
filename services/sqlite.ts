@@ -163,14 +163,15 @@ export const initParticipantDB = () => {
             "source TEXT DEFAULT 'WEB'",
             "sync_status INTEGER DEFAULT 1",
             "payment_verified INTEGER DEFAULT 0",
-            "participated INTEGER DEFAULT 0"
+            "participated INTEGER DEFAULT 0",
+            "team_name TEXT",
+            "team_members TEXT"
         ];
 
         columnsToAdd.forEach(colDef => {
             try {
                 const colName = colDef.split(' ')[0];
                 db.execSync(`ALTER TABLE participants ADD COLUMN ${colDef};`);
-                // console.log(`✅ Added missing column: ${colName}`);
             } catch (e: any) {
                 if (!e.message?.includes('duplicate column name')) {
                     // console.log(`Column exists or error: ${e.message}`);
@@ -180,6 +181,28 @@ export const initParticipantDB = () => {
 
     } catch (e) {
         console.error("Failed to init DB", e);
+    }
+};
+
+// Check if participant exists by email or phone for a specific event
+export const checkParticipantExists = async (email: string, phone: string, eventId: string): Promise<boolean> => {
+    if (Platform.OS === 'web') {
+        return webParticipants.some(p =>
+            p.event_id === eventId &&
+            (p.email === email || p.phone === phone)
+        );
+    }
+    if (!db) return false;
+
+    try {
+        const result = db.getFirstSync(
+            `SELECT COUNT(*) as count FROM participants WHERE event_id = ? AND (email = ? OR phone = ?);`,
+            [eventId, email, phone]
+        );
+        return (result?.count || 0) > 0;
+    } catch (e) {
+        console.error("Check existence failed", e);
+        return false;
     }
 };
 
@@ -197,9 +220,11 @@ export const insertParticipant = (
     department: string = '',
     department_other: string = '',
     year: string = '',
-    source: 'WEB' | 'ONSPOT' = 'WEB',
+    source: 'WEB' | 'ONSPOT' | 'IMPORT' = 'WEB',
     sync_status: number = 1,
-    checked_in: number = 0
+    checked_in: number = 0,
+    team_name: string = '',
+    team_members: string = '' // Store as JSON string or comma separated
 ) => {
     if (Platform.OS === 'web') {
         const exists = webParticipants.find(p => p.uid === uid && p.event_id === event_id);
@@ -209,7 +234,8 @@ export const insertParticipant = (
                 college, college_other, degree, degree_other,
                 department, department_other, year,
                 source, sync_status, checked_in, checkin_time: null,
-                payment_verified: 0, participated: 0
+                payment_verified: 0, participated: 0,
+                team_name, team_members
             });
             saveWebData();
         }
@@ -221,10 +247,10 @@ export const insertParticipant = (
         db.runSync(
             `INSERT OR IGNORE INTO participants 
             (uid, event_id, name, phone, email, college, college_other, degree, degree_other, 
-             department, department_other, year, source, sync_status, checked_in) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+             department, department_other, year, source, sync_status, checked_in, team_name, team_members) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
             [uid, event_id, name, phone, email, college, college_other, degree, degree_other,
-                department, department_other, year, source, sync_status, checked_in]
+                department, department_other, year, source, sync_status, checked_in, team_name, team_members]
         );
     } catch (e) {
         console.error("Insert failed", e);
@@ -437,17 +463,17 @@ export const getParticipantsByEvent = async (eventId: string): Promise<any[]> =>
     }
 };
 
-// Get strictly locally added participants (Newly Added)
+// Get strictly locally added participants (Newly Added: Onspot and Imported)
 export const getOnSpotParticipants = async (): Promise<any[]> => {
     if (Platform.OS === 'web') {
-        const local = webParticipants.filter(p => p.source === 'ONSPOT');
+        const local = webParticipants.filter(p => p.source === 'ONSPOT' || p.source === 'IMPORT');
         return local;
     }
     if (!db) return [];
 
     try {
         return await db.getAllSync(
-            `SELECT * FROM participants WHERE source = 'ONSPOT' ORDER BY rowid DESC;`
+            `SELECT * FROM participants WHERE source IN ('ONSPOT', 'IMPORT') ORDER BY rowid DESC;`
         );
     } catch (e) {
         console.error("Get onspot failed", e);

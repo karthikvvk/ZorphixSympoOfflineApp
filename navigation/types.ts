@@ -16,7 +16,10 @@ export type RootStackParamList = {
         prefilledDept?: string;
         prefilledYear?: string;
     } | undefined;
-    QRScanner: undefined;
+    QRScanner: {
+        mode?: 'INDIVIDUAL' | 'TEAM';
+        teamSize?: number;
+    } | undefined;
     DatabaseViewer: undefined;
     RecentRegistrations: undefined;
     Export: undefined;

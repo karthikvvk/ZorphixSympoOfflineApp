@@ -1,4 +1,4 @@
-import { insertParticipant } from './sqlite';
+import { insertParticipant, checkParticipantExists } from './sqlite';
 import { ExportData } from './ExportService';
 
 export interface ImportResult {
@@ -19,7 +19,7 @@ const parseQRData = (qrString: string): ExportData | null => {
         const data = JSON.parse(qrString) as ExportData;
 
         // Validate structure
-        if (!data.part || !data.total || !data.event || !Array.isArray(data.emails)) {
+        if (!data.part || !data.total || !data.event || !Array.isArray(data.items)) {
             return null;
         }
 
@@ -31,7 +31,7 @@ const parseQRData = (qrString: string): ExportData | null => {
 };
 
 /**
- * Import emails from scanned QR code
+ * Import participants from scanned QR code
  * Handles multi-part QR imports
  */
 export const importFromQR = async (
@@ -72,11 +72,11 @@ export const importFromQR = async (
         // Sort by part number
         buffer.sort((a, b) => a.part - b.part);
 
-        // Merge all emails
-        const allEmails = buffer.flatMap(item => item.emails);
+        // Merge all items: [name, phone, email]
+        const allItems = buffer.flatMap(item => item.items);
 
         // Import to database
-        const result = await importEmailsToDatabase(allEmails, eventName);
+        const result = await importParticipantsToDatabase(allItems, eventName);
 
         // Clear buffer
         importBuffer.delete(bufferKey);
@@ -97,48 +97,62 @@ export const importFromQR = async (
 };
 
 /**
- * Import emails into local database
+ * Import participants into local database
  */
-const importEmailsToDatabase = async (
-    emails: string[],
+const importParticipantsToDatabase = async (
+    items: [string, string, string][],
     eventName: string
 ): Promise<Omit<ImportResult, 'parts'>> => {
     let totalImported = 0;
     let duplicates = 0;
     let errors = 0;
 
-    for (const email of emails) {
+    for (const item of items) {
         try {
-            // Generate UID for imported user
-            const uid = `IMPORT_${eventName.replace(/\s+/g, '')}_${email.replace(/[@.]/g, '_')}`;
+            const [name, phone, email] = item;
 
-            // Try to insert (will be ignored if exists due to PRIMARY KEY constraint)
+            // Generate UID for imported user
+            // We use a prefix to distinguish, but maybe we should try to match existing format if possible?
+            // "IMPORT_Event_Email" is fine.
+            const uid = `IMPORT_${eventName.replace(/\s+/g, '')}_${(email || phone).replace(/[@.]/g, '_')}`;
+
+            // Check if already exists by Email OR Phone (Strict Check)
+            const exists = await checkParticipantExists(email, phone, eventName);
+            if (exists) {
+                duplicates++;
+                continue;
+            }
+
+            // Try to insert
             insertParticipant(
                 uid,
                 eventName,
-                email.split('@')[0], // Use email prefix as name
-                '',
+                name || email.split('@')[0],
+                phone,
                 email,
+                '', // college
                 '',
+                '', // degree
                 '',
+                '', // dept
                 '',
-                '',
-                '',
-                '',
-                '',
-                'WEB',
-                1, // Already synced (since it's imported from another source)
+                '', // year
+                'IMPORT', // Source as IMPORT so it shows in 'Newly Added'
+                1, // Already synced (assumed) OR 0 if we want it to push to firebase? 
+                // User said "add... to 'newly added users' list". 
+                // If we set 0, it pushes to Firebase. If we set 1, it assumes synced.
+                // Usually imports come from another device's export.
+                // If that device already synced, we shouldn't sync again.
+                // But "Newly Added Users" list query is `source IN ('ONSPOT', 'IMPORT')`.
+                // So it will show up regardless of sync_status.
+                // Let's keep sync_status=1 to safe.
                 0  // Not checked in
             );
 
             totalImported++;
         } catch (error: any) {
-            if (error.message?.includes('UNIQUE') || error.message?.includes('PRIMARY KEY')) {
-                duplicates++;
-            } else {
-                errors++;
-                console.error(`Failed to import ${email}:`, error);
-            }
+            console.error(`Failed to import ${item[2]}:`, error);
+            errors++;
         }
     }
 

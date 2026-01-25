@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Alert, Dimensions, Animated, Easing } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Alert, Dimensions, Animated, Easing, Modal } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
 import { useEventContext } from '../navigation/EventContext';
@@ -17,6 +17,12 @@ const { width } = Dimensions.get('window');
 const HomeScreen: React.FC<Props> = ({ navigation }) => {
     const [isMenuOpen, setIsMenuOpen] = React.useState(false);
     const [syncing, setSyncing] = React.useState(false);
+
+    // Verification Modal State
+    const [showVerifyModal, setShowVerifyModal] = React.useState(false);
+    const [verifyMode, setVerifyMode] = React.useState<'INDIVIDUAL' | 'TEAM'>('INDIVIDUAL');
+    const [teamSize, setTeamSize] = React.useState(3);
+
     const slideAnim = React.useRef(new Animated.Value(-width * 0.75)).current;
     const { eventContext, setEventContext } = useEventContext();
 
@@ -86,7 +92,16 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
     const handleVerifyEnrollment = () => {
         closeMenu();
-        navigation.navigate('QRScanner');
+        // navigation.navigate('QRScanner'); // OLD
+        setShowVerifyModal(true);
+    };
+
+    const handleStartScanning = () => {
+        setShowVerifyModal(false);
+        navigation.navigate('QRScanner', {
+            mode: verifyMode,
+            teamSize: verifyMode === 'TEAM' ? teamSize : 1
+        });
     };
 
     const handleViewDatabase = () => {
@@ -197,6 +212,73 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             {isMenuOpen && (
                 <TouchableOpacity style={styles.overlay} onPress={toggleMenu} activeOpacity={1} />
             )}
+
+            {/* Verification Mode Modal */}
+            <Modal
+                visible={showVerifyModal}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setShowVerifyModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.verifyModalContent}>
+                        <Text style={styles.verifyModalTitle}>Select Verification Mode</Text>
+
+                        {/* Mode Segmented Control */}
+                        <View style={styles.segmentContainer}>
+                            <TouchableOpacity
+                                style={[styles.segmentButton, verifyMode === 'INDIVIDUAL' && styles.segmentActive]}
+                                onPress={() => setVerifyMode('INDIVIDUAL')}
+                            >
+                                <Text style={[styles.segmentText, verifyMode === 'INDIVIDUAL' && styles.segmentTextActive]}>Individual</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.segmentButton, verifyMode === 'TEAM' && styles.segmentActive]}
+                                onPress={() => setVerifyMode('TEAM')}
+                            >
+                                <Text style={[styles.segmentText, verifyMode === 'TEAM' && styles.segmentTextActive]}>Team</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Team Size Stepper */}
+                        {verifyMode === 'TEAM' && (
+                            <View style={styles.stepperContainer}>
+                                <Text style={styles.stepperLabel}>Team Size:</Text>
+                                <View style={styles.stepperControls}>
+                                    <TouchableOpacity
+                                        style={styles.stepperButton}
+                                        onPress={() => setTeamSize(Math.max(2, teamSize - 1))}
+                                    >
+                                        <Text style={styles.stepperBtnText}>-</Text>
+                                    </TouchableOpacity>
+                                    <Text style={styles.stepperValue}>{teamSize}</Text>
+                                    <TouchableOpacity
+                                        style={styles.stepperButton}
+                                        onPress={() => setTeamSize(Math.min(10, teamSize + 1))}
+                                    >
+                                        <Text style={styles.stepperBtnText}>+</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        )}
+
+                        <View style={styles.verifyActionButtons}>
+                            <TouchableOpacity
+                                style={[styles.modalBtn, styles.modalBtnCancel]}
+                                onPress={() => setShowVerifyModal(false)}
+                            >
+                                <Text style={styles.modalBtnTextCancel}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.modalBtn, styles.modalBtnConfirm]}
+                                onPress={handleStartScanning}
+                            >
+                                <Text style={styles.modalBtnTextConfirm}>Start Scanning</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 };
@@ -364,6 +446,113 @@ const styles = StyleSheet.create({
         right: 0,
         backgroundColor: 'rgba(0,0,0,0.5)',
         zIndex: 90
+    },
+    // Verification Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.8)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20
+    },
+    verifyModalContent: {
+        backgroundColor: '#1E1E1E',
+        borderRadius: 20,
+        padding: 24,
+        width: '100%',
+        maxWidth: 340,
+        borderWidth: 1,
+        borderColor: '#333'
+    },
+    verifyModalTitle: {
+        color: '#FFD700',
+        fontSize: 20,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginBottom: 24
+    },
+    segmentContainer: {
+        flexDirection: 'row',
+        backgroundColor: '#333',
+        borderRadius: 12,
+        padding: 4,
+        marginBottom: 24
+    },
+    segmentButton: {
+        flex: 1,
+        paddingVertical: 12,
+        alignItems: 'center',
+        borderRadius: 8
+    },
+    segmentActive: {
+        backgroundColor: '#FFD700'
+    },
+    segmentText: {
+        color: '#888',
+        fontWeight: '600'
+    },
+    segmentTextActive: {
+        color: '#000',
+        fontWeight: 'bold'
+    },
+    stepperContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 30,
+        paddingHorizontal: 10
+    },
+    stepperLabel: {
+        color: '#FFF',
+        fontSize: 16
+    },
+    stepperControls: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#333',
+        borderRadius: 12,
+    },
+    stepperButton: {
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    stepperBtnText: {
+        color: '#FFD700',
+        fontSize: 24,
+        fontWeight: 'bold'
+    },
+    stepperValue: {
+        color: '#FFF',
+        fontSize: 18,
+        fontWeight: 'bold',
+        width: 40,
+        textAlign: 'center'
+    },
+    verifyActionButtons: {
+        flexDirection: 'row',
+        gap: 12
+    },
+    modalBtn: {
+        flex: 1,
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center'
+    },
+    modalBtnCancel: {
+        backgroundColor: '#333'
+    },
+    modalBtnConfirm: {
+        backgroundColor: '#FFD700'
+    },
+    modalBtnTextCancel: {
+        color: '#FFF',
+        fontWeight: 'bold'
+    },
+    modalBtnTextConfirm: {
+        color: '#000',
+        fontWeight: 'bold'
     }
 });
 
