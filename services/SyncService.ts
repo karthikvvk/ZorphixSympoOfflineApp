@@ -92,7 +92,15 @@ export const syncOnspotToFirebase = async () => {
                 department: p.department || '',
                 year: p.year || '',
                 events: [p.event_id],
-                payments: [],
+                payments: p.payment_verified ? [{
+                    amount: 0,
+                    date: new Date().toISOString(),
+                    eventNames: [p.event_id],
+                    id: `onspot_${Date.now()}`,
+                    status: "verified",
+                    verified: true,
+                    type: "CASH_ONSPOT"
+                }] : [],
                 profileCompleted: true,
                 registeredAt: serverTimestamp(),
                 createdAt: serverTimestamp(),

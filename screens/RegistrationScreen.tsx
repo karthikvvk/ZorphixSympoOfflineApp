@@ -191,9 +191,8 @@ const RegistrationScreen: React.FC<Props> = ({ navigation, route }) => {
         try {
             // If paid event and we are here, it means they clicked "Pay via Cash" or it was free
             // If paid, we should also update firebase with payment info
-            if (isPaid) {
-                await registerUserOnSpot(uid, eventId, 0);
-            }
+            // If paid event, we rely on the local record's payment_verified status
+            // The sync service will handle uploading the payment details to Firebase later.
 
             await insertParticipant(
                 uid,

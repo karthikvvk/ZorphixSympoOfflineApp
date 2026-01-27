@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'reac
 
 export default function TeamScannerLauncher({ navigation }: any) {
     const [teamName, setTeamName] = useState('');
-    const [teamSize, setTeamSize] = useState('2');
+    const [teamSize, setTeamSize] = useState(3);
 
     const handleStartTeamScan = () => {
         if (!teamName.trim()) {
@@ -11,17 +11,26 @@ export default function TeamScannerLauncher({ navigation }: any) {
             return;
         }
 
-        const size = parseInt(teamSize);
-        if (isNaN(size) || size < 1 || size > 10) {
-            Alert.alert('Invalid Team Size', 'Team size must be between 1 and 10.');
+        // teamSize is already a number and controlled by UI, so less validation needed, 
+        // but nice to keep safe.
+        if (teamSize < 2 || teamSize > 10) {
+            Alert.alert('Invalid Team Size', 'Team size must be between 2 and 10.');
             return;
         }
 
         navigation.navigate('QRScanner', {
             mode: 'TEAM',
-            teamSize: size,
+            teamSize: teamSize,
             teamName: teamName.trim()
         });
+    };
+
+    const incrementSize = () => {
+        if (teamSize < 10) setTeamSize(prev => prev + 1);
+    };
+
+    const decrementSize = () => {
+        if (teamSize > 2) setTeamSize(prev => prev - 1);
     };
 
     return (
@@ -42,29 +51,37 @@ export default function TeamScannerLauncher({ navigation }: any) {
 
             <View style={styles.inputContainer}>
                 <Text style={styles.label}>Team Size *</Text>
-                <TextInput
-                    style={styles.input}
-                    placeholder="Number of members"
-                    placeholderTextColor="#666"
-                    value={teamSize}
-                    onChangeText={setTeamSize}
-                    keyboardType="number-pad"
-                    maxLength={2}
-                />
+                <View style={styles.stepperContainer}>
+                    <TouchableOpacity
+                        style={styles.stepperButton}
+                        onPress={decrementSize}
+                    >
+                        <Text style={styles.stepperBtnText}>-</Text>
+                    </TouchableOpacity>
+
+                    <Text style={styles.stepperValue}>{teamSize}</Text>
+
+                    <TouchableOpacity
+                        style={styles.stepperButton}
+                        onPress={incrementSize}
+                    >
+                        <Text style={styles.stepperBtnText}>+</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <TouchableOpacity
                 style={styles.startButton}
                 onPress={handleStartTeamScan}
             >
-                <Text style={styles.startButtonText}>Start Team Verification</Text>
+                <Text style={styles.startButtonText}>Scan {teamSize} QR Codes</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
                 style={styles.individualButton}
                 onPress={() => navigation.navigate('QRScanner', { mode: 'INDIVIDUAL' })}
             >
-                <Text style={styles.individualButtonText}>Individual Scan Instead</Text>
+                {/* <Text style={styles.individualButtonText}>Individual Scan Instead</Text> */}
             </TouchableOpacity>
         </View>
     );
@@ -124,5 +141,35 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         fontWeight: 'bold',
         textDecorationLine: 'underline'
+    },
+    stepperContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#1a1a1a',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#333',
+        padding: 5
+    },
+    stepperButton: {
+        width: 60,
+        height: 50,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#333',
+        borderRadius: 6
+    },
+    stepperBtnText: {
+        color: '#FFD700',
+        fontSize: 28,
+        fontWeight: 'bold'
+    },
+    stepperValue: {
+        flex: 1,
+        color: '#FFF',
+        fontSize: 24,
+        fontWeight: 'bold',
+        textAlign: 'center'
     }
 });

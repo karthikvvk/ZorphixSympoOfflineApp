@@ -149,7 +149,6 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                     <Text style={styles.eventName}>{eventContext?.eventName || 'No Event'}</Text>
                     <Text style={styles.adminEmail}>{eventContext?.adminEmail}</Text>
                 </View>
-
                 {/* Action Buttons */}
                 <View style={styles.buttonContainer}>
                     <TouchableOpacity
@@ -157,6 +156,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                         onPress={handleNewRegister}
                         activeOpacity={0.8}
                     >
+
                         <MaterialCommunityIcons name="account-plus" size={32} color="#ffffffff" style={{ marginBottom: 10 }} />
                         <Text style={styles.actionTitle}>CREATE USER</Text>
                         <Text style={styles.actionSubtitle}>Onspot</Text>
@@ -169,7 +169,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                             activeOpacity={0.8}
                         >
                             <MaterialCommunityIcons name="account" size={32} color="#000" style={{ marginBottom: 10 }} />
-                            <Text style={[styles.actionTitle, styles.verifyTitle, { fontSize: 16 }]}>INDIVIDUAL</Text>
+                            <Text style={[styles.actionTitle, styles.verifyTitle, { fontSize: 16, alignContent: 'center' }]}>ENROLL INDIVIDUAL</Text>
                             <Text style={[styles.actionSubtitle, styles.verifySubtitle, { fontSize: 12 }]}>Scan Now</Text>
                         </TouchableOpacity>
 
@@ -179,7 +179,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                             activeOpacity={0.8}
                         >
                             <MaterialCommunityIcons name="account-group" size={32} color="#000" style={{ marginBottom: 10 }} />
-                            <Text style={[styles.actionTitle, styles.verifyTitle, { fontSize: 16 }]}>TEAM</Text>
+                            <Text style={[styles.actionTitle, styles.verifyTitle, { fontSize: 16 }]}>ENROLL TEAM</Text>
                             <Text style={[styles.actionSubtitle, styles.verifySubtitle, { fontSize: 12 }]}>Team Setup</Text>
                         </TouchableOpacity>
                     </View>
@@ -397,7 +397,9 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#FFD700',
         letterSpacing: 1,
+        textAlign: 'center',
     },
+
     verifyTitle: {
         color: '#000',
     },
