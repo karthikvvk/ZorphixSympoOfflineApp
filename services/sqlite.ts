@@ -471,6 +471,35 @@ export const getEventParticipantCount = async (eventId: string): Promise<{ total
     }
 };
 
+// Search participants by name, email, or phone
+export const searchParticipants = async (query: string): Promise<any[]> => {
+    if (!query || query.trim().length === 0) return [];
+
+    if (Platform.OS === 'web') {
+        const lowerQuery = query.toLowerCase();
+        return webParticipants.filter(p =>
+            (p.name && p.name.toLowerCase().includes(lowerQuery)) ||
+            (p.email && p.email.toLowerCase().includes(lowerQuery)) ||
+            (p.phone && p.phone.includes(query))
+        );
+    }
+    if (!db) return [];
+
+    try {
+        return db.getAllSync(
+            `SELECT * FROM participants WHERE 
+            name LIKE ? OR 
+            email LIKE ? OR 
+            phone LIKE ? 
+            ORDER BY name ASC LIMIT 50;`,
+            [`%${query}%`, `%${query}%`, `%${query}%`]
+        );
+    } catch (e) {
+        console.error("Search failed", e);
+        return [];
+    }
+};
+
 // Clear all data (for testing/reset)
 export const clearAllParticipants = () => {
     if (Platform.OS === 'web') {

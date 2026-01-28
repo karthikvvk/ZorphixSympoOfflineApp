@@ -224,6 +224,8 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                     <Text style={styles.menuTitle}>Dashboard</Text>
                 </View>
 
+
+
                 <TouchableOpacity style={styles.menuItem} onPress={handleViewDatabase}>
                     <MaterialCommunityIcons name="database" size={24} color="#FFF" style={{ marginRight: 15 }} />
                     <Text style={styles.menuItemText}>View Full Database</Text>
@@ -339,6 +341,15 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                     </View>
                 </View>
             </Modal>
+
+            {/* Search floating action button */}
+            <TouchableOpacity
+                style={styles.fab}
+                onPress={() => { closeMenu(); navigation.navigate('Search'); }}
+                activeOpacity={0.8}
+            >
+                <MaterialCommunityIcons name="magnify" size={30} color="#000" />
+            </TouchableOpacity>
         </View>
     );
 };
@@ -347,6 +358,23 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#000000',
+    },
+    fab: {
+        position: 'absolute',
+        bottom: 30,
+        right: 30,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: '#FFD700',
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4.65,
+        zIndex: 50, // Ensure it's above other elements but below menu if needed (menu zIndex is 100)
     },
     header: {
         flexDirection: 'row',

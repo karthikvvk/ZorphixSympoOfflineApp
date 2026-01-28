@@ -9,6 +9,7 @@ import DatabaseViewerScreen from '../screens/DatabaseViewerScreen';
 import RecentRegistrationsScreen from '../screens/RecentRegistrationsScreen';
 import ExportScreen from '../screens/ExportScreen';
 import ImportScreen from '../screens/ImportScreen';
+import SearchScreen from '../screens/SearchScreen';
 import TeamScannerLauncher from '../screens/TeamScannerLauncher';
 import { RootStackParamList } from './types';
 
@@ -81,6 +82,11 @@ const AppNavigator = () => {
                 name="Import"
                 component={ImportScreen}
                 options={{ title: 'Import Data' }}
+            />
+            <Stack.Screen
+                name="Search"
+                component={SearchScreen}
+                options={{ title: 'Search Participants', headerShown: false }}
             />
             <Stack.Screen
                 name="TeamScannerSetup"

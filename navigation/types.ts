@@ -25,6 +25,7 @@ export type RootStackParamList = {
     RecentRegistrations: undefined;
     Export: undefined;
     Import: undefined;
+    Search: undefined;
     TeamScannerSetup: undefined;
 };
 
