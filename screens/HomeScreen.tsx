@@ -241,6 +241,10 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                     <Text style={styles.menuItemText}>Export Data</Text>
                 </TouchableOpacity>
 
+                <TouchableOpacity style={styles.menuItem} onPress={() => { closeMenu(); navigation.navigate('Import'); }}>
+                    <MaterialCommunityIcons name="qrcode-scan" size={24} color="#FFF" style={{ marginRight: 15 }} />
+                    <Text style={[styles.menuItemText, { color: '#ffffffff' }]}>Sync with Peers</Text>
+                </TouchableOpacity>
                 {/* Replaced generic Import with One-Time Import */}
                 <TouchableOpacity
                     style={[styles.menuItem, isImportDone && { opacity: 0.5 }]}
@@ -260,10 +264,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                      The "Import Data" button (ImportScreen) was for QR import service. 
                      I will keep "Export Data" and "Import Data" (QR) as is, but add "One-Time Import" as requested.
                  */}
-                <TouchableOpacity style={styles.menuItem} onPress={() => { closeMenu(); navigation.navigate('Import'); }}>
-                    <MaterialCommunityIcons name="qrcode-scan" size={24} color="#888" style={{ marginRight: 15 }} />
-                    <Text style={[styles.menuItemText, { color: '#888' }]}>Scan QR Import</Text>
-                </TouchableOpacity>
+
 
 
                 <View style={styles.divider} />

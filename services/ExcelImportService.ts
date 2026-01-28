@@ -1,6 +1,6 @@
 
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as XLSX from 'xlsx';
 import { insertParticipant, checkParticipantExists } from './sqlite';
 import { Alert } from 'react-native';
