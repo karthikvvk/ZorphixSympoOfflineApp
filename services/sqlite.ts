@@ -471,29 +471,39 @@ export const getEventParticipantCount = async (eventId: string): Promise<{ total
     }
 };
 
-// Search participants by name, email, or phone
-export const searchParticipants = async (query: string): Promise<any[]> => {
+// Search participants by name, email, or phone, optionally filtered by event
+export const searchParticipants = async (query: string, eventId?: string): Promise<any[]> => {
     if (!query || query.trim().length === 0) return [];
 
     if (Platform.OS === 'web') {
         const lowerQuery = query.toLowerCase();
-        return webParticipants.filter(p =>
-            (p.name && p.name.toLowerCase().includes(lowerQuery)) ||
-            (p.email && p.email.toLowerCase().includes(lowerQuery)) ||
-            (p.phone && p.phone.includes(query))
-        );
+        return webParticipants.filter(p => {
+            const matchesQuery = (p.name && p.name.toLowerCase().includes(lowerQuery)) ||
+                (p.email && p.email.toLowerCase().includes(lowerQuery)) ||
+                (p.phone && p.phone.includes(query));
+
+            if (eventId && eventId !== 'ALL' && p.event_id !== eventId) return false;
+            return matchesQuery;
+        });
     }
     if (!db) return [];
 
     try {
-        return db.getAllSync(
-            `SELECT * FROM participants WHERE 
-            name LIKE ? OR 
+        let sql = `SELECT * FROM participants WHERE 
+            (name LIKE ? OR 
             email LIKE ? OR 
-            phone LIKE ? 
-            ORDER BY name ASC LIMIT 50;`,
-            [`%${query}%`, `%${query}%`, `%${query}%`]
-        );
+            phone LIKE ?)`;
+
+        const params: any[] = [`%${query}%`, `%${query}%`, `%${query}%`];
+
+        if (eventId && eventId !== 'ALL') {
+            sql += ` AND event_id = ?`;
+            params.push(eventId);
+        }
+
+        sql += ` ORDER BY name ASC LIMIT 50;`;
+
+        return db.getAllSync(sql, params);
     } catch (e) {
         console.error("Search failed", e);
         return [];

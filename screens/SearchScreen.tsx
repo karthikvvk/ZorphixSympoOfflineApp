@@ -8,12 +8,15 @@ import {
     TouchableOpacity,
     Modal,
     ScrollView,
-    SafeAreaView
+    SafeAreaView,
+    Platform,
+    StatusBar
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { searchParticipants } from '../services/sqlite';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
+import { useEventContext } from '../navigation/EventContext';
 
 // Define the Participant type
 type Participant = {
@@ -40,6 +43,7 @@ type Props = {
 };
 
 export default function SearchScreen({ navigation }: Props) {
+    const { eventContext } = useEventContext();
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<Participant[]>([]);
     const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
@@ -49,7 +53,14 @@ export default function SearchScreen({ navigation }: Props) {
     useEffect(() => {
         const timer = setTimeout(async () => {
             if (query.length > 2) {
-                const data = await searchParticipants(query);
+                // If admin is SUPER ADMIN, fetch all. Otherwise filtered by event.
+                // UNLESS user wants "Logged in event" strictly.
+                // Assuming "admin@zorphix.com" = Super Admin (ALL)
+                // Others = Filtered.
+                const isSuperAdmin = eventContext?.adminEmail === 'admin@zorphix.com';
+                const filterEvent = isSuperAdmin ? 'ALL' : (eventContext?.eventName || 'ALL');
+
+                const data = await searchParticipants(query, filterEvent);
                 setResults(data);
             } else if (query.length === 0) {
                 setResults([]);
@@ -57,7 +68,7 @@ export default function SearchScreen({ navigation }: Props) {
         }, 300);
 
         return () => clearTimeout(timer);
-    }, [query]);
+    }, [query, eventContext]);
 
     const handleSelect = (participant: Participant) => {
         setSelectedParticipant(participant);
@@ -65,25 +76,33 @@ export default function SearchScreen({ navigation }: Props) {
     };
 
     const renderItem = ({ item }: { item: Participant }) => (
-        <TouchableOpacity style={styles.card} onPress={() => handleSelect(item)}>
-            <Text style={styles.name}>{item.name}</Text>
-            <Text style={styles.subtext}>{item.email}</Text>
-            <Text style={styles.subtext}>{item.phone}</Text>
-            <View style={styles.badgeContainer}>
-                <View style={[styles.badge, styles.eventBadge]}>
-                    <Text style={styles.badgeText}>{item.event_id}</Text>
+        <TouchableOpacity style={styles.card} onPress={() => handleSelect(item)} activeOpacity={0.8}>
+            <View style={styles.cardHeader}>
+                <View style={styles.userInfo}>
+                    <Text style={styles.name}>{item.name}</Text>
+                    <Text style={styles.email}>{item.email}</Text>
+                    <Text style={styles.metaPhone}>{item.phone}</Text>
                 </View>
-                {item.participated > 0 && (
-                    <View style={[styles.badge, styles.successBadge]}>
-                        <Text style={styles.badgeText}>Participated</Text>
+                <View style={styles.badgeColumn}>
+                    <View style={[styles.badge, styles.eventBadge]}>
+                        <Text style={styles.badgeText}>{item.event_id}</Text>
                     </View>
-                )}
+                    {item.participated > 0 ? (
+                        <View style={[styles.badge, styles.badgeChecked]}>
+                            <Text style={styles.badgeText}>Checked In</Text>
+                        </View>
+                    ) : (
+                        <View style={[styles.badge, styles.badgeUnchecked]}>
+                            <Text style={styles.badgeText}>Pending</Text>
+                        </View>
+                    )}
+                </View>
             </View>
         </TouchableOpacity>
     );
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color="#FFD700" />
@@ -192,7 +211,7 @@ export default function SearchScreen({ navigation }: Props) {
                     </View>
                 </View>
             </Modal>
-        </SafeAreaView>
+        </View>
     );
 }
 
@@ -200,11 +219,13 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#000',
+        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 50, // Safe Area Fix
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 16,
+        paddingHorizontal: 16,
+        paddingBottom: 16,
         borderBottomWidth: 1,
         borderBottomColor: '#333',
     },
@@ -241,11 +262,21 @@ const styles = StyleSheet.create({
     },
     card: {
         backgroundColor: '#111',
-        padding: 16,
-        borderRadius: 8,
-        marginBottom: 12,
-        borderLeftWidth: 3,
-        borderLeftColor: '#FFD700',
+        borderRadius: 10,
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: '#333',
+        overflow: 'hidden'
+    },
+    cardHeader: {
+        padding: 15,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: '#1a1a1a'
+    },
+    userInfo: {
+        flex: 1
     },
     name: {
         fontSize: 18,
@@ -253,30 +284,38 @@ const styles = StyleSheet.create({
         color: '#FFF',
         marginBottom: 4,
     },
-    subtext: {
-        color: '#AAA',
+    email: {
+        color: '#ccc',
         fontSize: 14,
         marginBottom: 2,
     },
-    badgeContainer: {
-        flexDirection: 'row',
-        marginTop: 8,
-        gap: 8,
+    metaPhone: {
+        color: '#888',
+        fontSize: 12,
+    },
+    badgeColumn: {
+        alignItems: 'flex-end',
+        gap: 6
     },
     badge: {
         paddingHorizontal: 8,
         paddingVertical: 2,
-        borderRadius: 4,
+        borderRadius: 12,
     },
     eventBadge: {
         backgroundColor: '#333',
+        borderWidth: 1,
+        borderColor: '#444'
     },
-    successBadge: {
+    badgeChecked: {
         backgroundColor: '#006400',
+    },
+    badgeUnchecked: {
+        backgroundColor: '#8B0000',
     },
     badgeText: {
         color: '#FFF',
-        fontSize: 12,
+        fontSize: 10,
         fontWeight: 'bold',
     },
     emptyText: {
