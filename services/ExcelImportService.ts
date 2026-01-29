@@ -14,7 +14,7 @@ export const importFromExcel = async () => {
         });
 
         if (result.canceled) {
-            console.log('User cancelled file picker');
+            // console.log('User cancelled file picker');
             return 0;
         }
 

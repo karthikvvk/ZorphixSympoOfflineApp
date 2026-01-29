@@ -63,8 +63,8 @@ export const syncFromFirebase = async () => {
     // }
     //     throw error;
     // }
-    console.log("⚠️ [SyncService] syncFromFirebase() was called but is DISABLED.");
-    console.log("Sync from Firebase is DISABLED.");
+    // console.log("⚠️ [SyncService] syncFromFirebase() was called but is DISABLED.");
+    // console.log("Sync from Firebase is DISABLED.");
     return 0;
 };
 
@@ -72,17 +72,17 @@ export const syncFromFirebase = async () => {
 // Pushes ALL locally modified participants (sync_status=0) to 'local_registrations' collection
 export const syncOnspotToFirebase = async () => {
     try {
-        console.log("🔄 [SyncService] syncOnspotToFirebase() called. Checking local SQLite for unsynced records...");
+        // console.log("🔄 [SyncService] syncOnspotToFirebase() called. Checking local SQLite for unsynced records...");
         const unsyncedParams = await getUnsyncedParticipants();
 
         if (unsyncedParams.length === 0) {
             // console.log("No unsynced on-spot registrations found.");
-            console.log("ℹ️ [SyncService] No unsynced local records found.");
+            // console.log("ℹ️ [SyncService] No unsynced local records found.");
             return 0;
         }
 
         // console.log(`Found ${unsyncedParams.length} unsynced participants. Uploading...`);
-        console.log(`📤 [SyncService] Found ${unsyncedParams.length} records to sync. Preparing batch...`);
+        // console.log(`📤 [SyncService] Found ${unsyncedParams.length} records to sync. Preparing batch...`);
 
         const batch = writeBatch(writeDb);
 
@@ -168,7 +168,7 @@ export const syncOnspotToFirebase = async () => {
         }
 
         // console.log(`Successfully uploaded ${unsyncedParams.length} on-spot registrations.`);
-        console.log(`✅ [SyncService] Batch commit successful. Uploaded ${unsyncedParams.length} records.`);
+        // console.log(`✅ [SyncService] Batch commit successful. Uploaded ${unsyncedParams.length} records.`);
         return unsyncedParams.length;
 
     } catch (error) {
@@ -252,6 +252,6 @@ export const syncEventFromFirebase = async (eventName: string) => {
     //     console.error(`Sync for event ${eventName} failed:`, error);
     //     throw error;
     // }
-    console.log(`Sync for event ${eventName} is DISABLED.`);
+    // console.log(`Sync for event ${eventName} is DISABLED.`);
     return 0;
 };

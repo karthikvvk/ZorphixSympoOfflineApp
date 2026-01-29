@@ -18,16 +18,16 @@ export type SyncStatusCallback = (status: string, subStatus?: string) => void;
 export const syncParticipantsFromFirebase = async (
     onStatusChange?: SyncStatusCallback
 ): Promise<{ success: boolean; count: number }> => {
-    console.log('📦 [SyncFromFirebase] syncParticipantsFromFirebase() called.');
+    // console.log('📦 [SyncFromFirebase] syncParticipantsFromFirebase() called.');
 
     const updateStatus = (status: string, subStatus?: string) => {
-        console.log(`📡 [SyncFromFirebase] ${status} ${subStatus || ''}`);
+        // console.log(`📡 [SyncFromFirebase] ${status} ${subStatus || ''}`);
         onStatusChange?.(status, subStatus);
     };
 
     // Skip on web platform
     if (Platform.OS === 'web') {
-        console.log('⏭️ [SyncFromFirebase] Skipping on web platform');
+        // console.log('⏭️ [SyncFromFirebase] Skipping on web platform');
         return { success: true, count: 0 };
     }
 
@@ -49,7 +49,7 @@ export const syncParticipantsFromFirebase = async (
         const totalParticipants = snapshot.docs.length;
 
         updateStatus('Data received ✓', `Found ${totalParticipants} participants`);
-        console.log(`📊 [SyncFromFirebase] Found ${totalParticipants} participants in Firebase`);
+        // console.log(`📊 [SyncFromFirebase] Found ${totalParticipants} participants in Firebase`);
 
         // Step 3: Process and insert
         updateStatus('Updating local database...', 'Processing records');
@@ -84,19 +84,19 @@ export const syncParticipantsFromFirebase = async (
                     totalRecords++;
                 }
             } catch (docError) {
-                console.log(`⚠️ [SyncFromFirebase] Failed to process doc ${docSnap.id}:`, docError);
+                // console.log(`⚠️ [SyncFromFirebase] Failed to process doc ${docSnap.id}:`, docError);
                 errors++;
             }
         }
 
         // Step 4: Complete
         updateStatus('Sync complete ✓', `${totalRecords} records updated`);
-        console.log(`✅ [SyncFromFirebase] Sync complete: ${totalRecords} records processed, ${errors} errors`);
+        // console.log(`✅ [SyncFromFirebase] Sync complete: ${totalRecords} records processed, ${errors} errors`);
 
         return { success: true, count: totalRecords };
 
     } catch (error) {
-        console.log('⚠️ [SyncFromFirebase] Sync failed silently:', error);
+        // console.log('⚠️ [SyncFromFirebase] Sync failed silently:', error);
         updateStatus('Sync failed', 'Will retry on next launch');
         return { success: false, count: 0 };
     }

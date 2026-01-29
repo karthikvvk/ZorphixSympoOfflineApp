@@ -146,6 +146,9 @@ export const exportToExcel = async (): Promise<void> => {
         const uniqueParticipantsMap = new Map<string, any>();
 
         participants.forEach(p => {
+            // Only include attended participants (participated > 0)
+            if ((p.participated || 0) <= 0) return;
+
             const key = `${p.uid}_${p.event_id}`;
             if (!uniqueParticipantsMap.has(key)) {
                 uniqueParticipantsMap.set(key, p);
@@ -153,6 +156,10 @@ export const exportToExcel = async (): Promise<void> => {
         });
 
         const uniqueParticipants = Array.from(uniqueParticipantsMap.values());
+
+        if (uniqueParticipants.length === 0) {
+            throw new Error('No attended participants to export');
+        }
 
         // Format data to specific columns requested
         // event_id,Name,Phone,Email,College,Department,Year,Checkin Time,Source,Payment Verified,Participated,Team Name,Team Members,UID

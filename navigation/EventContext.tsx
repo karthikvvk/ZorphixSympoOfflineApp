@@ -23,7 +23,7 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
                 const savedSession = await AsyncStorage.getItem(SESSION_STORAGE_KEY);
                 if (savedSession) {
                     const parsedSession = JSON.parse(savedSession) as EventContext;
-                    console.log('✅ Restored session:', parsedSession.adminEmail);
+                    // console.log('✅ Restored session:', parsedSession.adminEmail);
                     setEventContextState(parsedSession);
                 }
             } catch (error) {
@@ -43,10 +43,10 @@ export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         try {
             if (context) {
                 await AsyncStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(context));
-                console.log('💾 Session saved:', context.adminEmail);
+                // console.log('💾 Session saved:', context.adminEmail);
             } else {
                 await AsyncStorage.removeItem(SESSION_STORAGE_KEY);
-                console.log('🗑️ Session cleared');
+                // console.log('🗑️ Session cleared');
             }
         } catch (error) {
             console.error('Failed to persist session:', error);

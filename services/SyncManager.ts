@@ -39,28 +39,28 @@ const checkActualInternet = async (): Promise<boolean> => {
  */
 const attemptSync = async () => {
     if (hasSyncedSuccessfully) {
-        console.log('✅ [SyncManager] Already synced, skipping');
+        // console.log('✅ [SyncManager] Already synced, skipping');
         return;
     }
 
     if (isCurrentlySyncing) {
-        console.log('⏳ [SyncManager] Sync already in progress, skipping');
+        // console.log('⏳ [SyncManager] Sync already in progress, skipping');
         return;
     }
 
-    console.log('🔍 [SyncManager] Checking actual internet connectivity...');
+    // console.log('🔍 [SyncManager] Checking actual internet connectivity...');
     // Don't show overlay for connectivity check - silent background check
 
     const hasInternet = await checkActualInternet();
 
     if (!hasInternet) {
         // Silent failure - just log, no popup
-        console.log('❌ [SyncManager] No actual internet (WiFi but no access) - will retry silently');
+        // console.log('❌ [SyncManager] No actual internet (WiFi but no access) - will retry silently');
         return;
     }
 
     // Internet confirmed - NOW show the overlay
-    console.log('🌐 [SyncManager] Internet confirmed, triggering sync...');
+    // console.log('🌐 [SyncManager] Internet confirmed, triggering sync...');
     isCurrentlySyncing = true;
 
     try {
@@ -68,11 +68,11 @@ const attemptSync = async () => {
         const result = await syncParticipantsFromFirebase(statusCallback);
         if (result.success) {
             hasSyncedSuccessfully = true;
-            console.log('✅ [SyncManager] Sync completed successfully');
+            // console.log('✅ [SyncManager] Sync completed successfully');
         }
     } catch (error) {
         // Silent failure - just log, no popup
-        console.log('⚠️ [SyncManager] Sync failed - will retry silently:', error);
+        // console.log('⚠️ [SyncManager] Sync failed - will retry silently:', error);
     } finally {
         isCurrentlySyncing = false;
     }
@@ -83,21 +83,21 @@ const attemptSync = async () => {
  */
 const startPolling = () => {
     if (pollingInterval) {
-        console.log('⏰ [SyncManager] Polling already running');
+        // console.log('⏰ [SyncManager] Polling already running');
         return;
     }
 
     pollingInterval = setInterval(() => {
-        console.log('⏰ [SyncManager] Polling tick...');
+        // console.log('⏰ [SyncManager] Polling tick...');
         if (!hasSyncedSuccessfully && !isCurrentlySyncing) {
             attemptSync();
         } else if (hasSyncedSuccessfully) {
-            console.log('⏹ [SyncManager] Sync complete, stopping polling');
+            // console.log('⏹ [SyncManager] Sync complete, stopping polling');
             stopPolling();
         }
     }, POLLING_INTERVAL_MS);
 
-    console.log('⏰ [SyncManager] Polling started (every 30s)');
+    // console.log('⏰ [SyncManager] Polling started (every 30s)');
 };
 
 /**
@@ -107,7 +107,7 @@ const stopPolling = () => {
     if (pollingInterval) {
         clearInterval(pollingInterval);
         pollingInterval = null;
-        console.log('⏹ [SyncManager] Polling stopped');
+        // console.log('⏹ [SyncManager] Polling stopped');
     }
 };
 
@@ -115,11 +115,11 @@ const stopPolling = () => {
  * Handle app state changes (foreground/background)
  */
 const handleAppStateChange = (nextAppState: AppStateStatus) => {
-    console.log(`📱 [SyncManager] App state changed: ${nextAppState}`);
+    // console.log(`📱 [SyncManager] App state changed: ${nextAppState}`);
 
     if (nextAppState === 'active' && !hasSyncedSuccessfully) {
         // App came to foreground, try sync immediately
-        console.log('🔄 [SyncManager] App active, attempting sync...');
+        // console.log('🔄 [SyncManager] App active, attempting sync...');
         attemptSync();
 
         // Restart polling if it was stopped
@@ -138,11 +138,11 @@ const handleAppStateChange = (nextAppState: AppStateStatus) => {
 export const startNetworkWatcher = (onStatusChange?: SyncStatusCallback) => {
     // Avoid duplicate subscriptions
     if (networkSubscription) {
-        console.log('🔄 [SyncManager] Network watcher already running');
+        // console.log('🔄 [SyncManager] Network watcher already running');
         return;
     }
 
-    console.log('👀 [SyncManager] Starting network watcher...');
+    // console.log('👀 [SyncManager] Starting network watcher...');
     hasSyncedSuccessfully = false;
     isCurrentlySyncing = false;
     statusCallback = onStatusChange;
@@ -152,7 +152,7 @@ export const startNetworkWatcher = (onStatusChange?: SyncStatusCallback) => {
 
     // Network state change listener
     networkSubscription = NetInfo.addEventListener(async (state: NetInfoState) => {
-        console.log(`📶 [SyncManager] Network state: connected=${state.isConnected}, type=${state.type}`);
+        // console.log(`📶 [SyncManager] Network state: connected=${state.isConnected}, type=${state.type}`);
 
         if (state.isConnected && !hasSyncedSuccessfully && !isCurrentlySyncing) {
             await attemptSync();
@@ -182,7 +182,7 @@ export const stopNetworkWatcher = () => {
     hasSyncedSuccessfully = false;
     isCurrentlySyncing = false;
     statusCallback = undefined;
-    console.log('🛑 [SyncManager] All watchers stopped');
+    // console.log('🛑 [SyncManager] All watchers stopped');
 };
 
 /**
@@ -190,7 +190,7 @@ export const stopNetworkWatcher = () => {
  */
 export const resetSyncStatus = () => {
     hasSyncedSuccessfully = false;
-    console.log('🔄 [SyncManager] Sync status reset');
+    // console.log('🔄 [SyncManager] Sync status reset');
 };
 
 /**

@@ -239,7 +239,7 @@ export const registerUserOnSpot = async (
             })
         }, { merge: true });
 
-        console.log(`Successfully registered on-spot in local_registrations (Write DB) for ${userUid}`);
+        // console.log(`Successfully registered on-spot in local_registrations (Write DB) for ${userUid}`);
         return true;
     } catch (error) {
         console.error("Failed to register user on-spot:", error);

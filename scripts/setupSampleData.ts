@@ -59,11 +59,11 @@ function readParticipantsFromExcel(): Participant[] {
         ? fileName
         : path.join(process.cwd(), fileName);
 
-    console.log(`\n📖 Reading from Excel file: ${EXCEL_PATH}`);
+    // console.log(`\n📖 Reading from Excel file: ${EXCEL_PATH}`);
 
     if (!fs.existsSync(EXCEL_PATH)) {
         console.error(`❌ Excel file not found at: ${EXCEL_PATH}`);
-        console.log(`   Usage: npx ts-node scripts/setupSampleData.ts [filename]`);
+        // console.log(`   Usage: npx ts-node scripts/setupSampleData.ts [filename]`);
         process.exit(1);
     }
 
@@ -74,7 +74,7 @@ function readParticipantsFromExcel(): Participant[] {
 
     // Convert to JSON
     const rawData: any[] = XLSX_LIB.utils.sheet_to_json(sheet);
-    console.log(`✅ Read ${rawData.length} rows from Excel`);
+    // console.log(`✅ Read ${rawData.length} rows from Excel`);
 
     // Map to Participant interface
     return rawData.map(row => ({
@@ -96,8 +96,8 @@ function readParticipantsFromExcel(): Participant[] {
  * Firestore batch limit is 500 operations
  */
 async function uploadParticipantsToFirestore(participants: Participant[]) {
-    console.log('\n🔄 Uploading participants to Firestore...\n');
-    console.log('='.repeat(60));
+    // console.log('\n🔄 Uploading participants to Firestore...\n');
+    // console.log('='.repeat(60));
 
     const BATCH_SIZE = 500;
     let totalUploaded = 0;
@@ -142,11 +142,11 @@ async function uploadParticipantsToFirestore(participants: Participant[]) {
             await batch.commit();
             totalUploaded += batchParticipants.length;
 
-            console.log(`✅ Batch ${batchCount}: Uploaded ${batchParticipants.length} participants (Total: ${totalUploaded}/${participants.length})`);
+            // console.log(`✅ Batch ${batchCount}: Uploaded ${batchParticipants.length} participants (Total: ${totalUploaded}/${participants.length})`);
         }
 
-        console.log('='.repeat(60));
-        console.log(`\n✨ Participant Upload Complete! Uploaded ${totalUploaded} participants in ${batchCount} batches`);
+        // console.log('='.repeat(60));
+        // console.log(`\n✨ Participant Upload Complete! Uploaded ${totalUploaded} participants in ${batchCount} batches`);
 
         return totalUploaded;
     } catch (error: any) {
@@ -160,8 +160,8 @@ async function uploadParticipantsToFirestore(participants: Participant[]) {
  * This creates a sub-collection under each event with registered participants
  */
 async function createEventWiseCollections(participants: Participant[]) {
-    console.log('\n📊 Creating event-wise participant collections...\n');
-    console.log('='.repeat(60));
+    // console.log('\n📊 Creating event-wise participant collections...\n');
+    // console.log('='.repeat(60));
 
     // Group participants by event
     const eventParticipants = new Map<string, Participant[]>();
@@ -239,40 +239,40 @@ async function createEventWiseCollections(participants: Participant[]) {
             }
 
             eventCount++;
-            console.log(`✅ ${eventName}: ${eventParts.length} participants`);
+            // console.log(`✅ ${eventName}: ${eventParts.length} participants`);
         } catch (error: any) {
             console.error(`❌ Failed to create collection for ${eventName}: ${error.message}`);
         }
     }
 
-    console.log('='.repeat(60));
-    console.log(`\n✨ Event Collections Complete! Created ${eventCount} event collections`);
+    // console.log('='.repeat(60));
+    // console.log(`\n✨ Event Collections Complete! Created ${eventCount} event collections`);
 }
 
 /**
  * Verify uploaded data
  */
 async function verifyData() {
-    console.log('\n🔍 Verifying Firestore data...\n');
-    console.log('='.repeat(60));
+    // console.log('\n🔍 Verifying Firestore data...\n');
+    // console.log('='.repeat(60));
 
     try {
         // Verify participants
         const participantSnapshot = await getDocs(collection(db, 'participants'));
-        console.log(`\n📌 Participants: ${participantSnapshot.size} records`);
+        // console.log(`\n📌 Participants: ${participantSnapshot.size} records`);
 
         // Verify events
         const eventsSnapshot = await getDocs(collection(db, 'events'));
-        console.log(`📌 Events: ${eventsSnapshot.size} events`);
+        // console.log(`📌 Events: ${eventsSnapshot.size} events`);
 
         // Show sample participant
         if (participantSnapshot.size > 0) {
             const firstDoc = participantSnapshot.docs[0];
-            console.log('\n📄 Sample Participant:');
-            console.log(JSON.stringify(firstDoc.data(), null, 2));
+            // console.log('\n📄 Sample Participant:');
+            // console.log(JSON.stringify(firstDoc.data(), null, 2));
         }
 
-        console.log('\n' + '='.repeat(60));
+        // console.log('\n' + '='.repeat(60));
     } catch (error: any) {
         console.error('Error reading data:', error.message);
     }
@@ -282,11 +282,11 @@ async function verifyData() {
  * Main execution
  */
 async function main() {
-    console.log('\n🎯 EXCEL → FIRESTORE SYNC');
-    console.log('='.repeat(60));
+    // console.log('\n🎯 EXCEL → FIRESTORE SYNC');
+    // console.log('='.repeat(60));
     // console.log(`Database: ${DB_PATH}`); // No DB
-    console.log(`Firebase Project: ${firebaseConfig.projectId}`);
-    console.log('='.repeat(60));
+    // console.log(`Firebase Project: ${firebaseConfig.projectId}`);
+    // console.log('='.repeat(60));
 
     try {
         // Step 1: Read from Excel
@@ -306,7 +306,7 @@ async function main() {
         // Step 4: Verify everything
         await verifyData();
 
-        console.log('\n✅ SYNC COMPLETE!\n');
+        // console.log('\n✅ SYNC COMPLETE!\n');
         process.exit(0);
     } catch (error: any) {
         console.error('\n❌ SYNC FAILED:', error.message);

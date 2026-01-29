@@ -42,17 +42,17 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
     // Start network watcher for background sync on mount
     React.useEffect(() => {
-        console.log('🏠 [HomeScreen] Component Mounted.');
-        console.log(`ℹ️ [HomeScreen] Context: Event="${eventContext?.eventName}", Email="${eventContext?.adminEmail}"`);
+        // console.log('🏠 [HomeScreen] Component Mounted.');
+        // console.log(`ℹ️ [HomeScreen] Context: Event="${eventContext?.eventName}", Email="${eventContext?.adminEmail}"`);
         if (isOnSpotMode) {
-            console.log('ℹ️ [HomeScreen] Mode: ON-SPOT REGISTRATION DESK');
+            // console.log('ℹ️ [HomeScreen] Mode: ON-SPOT REGISTRATION DESK');
         } else {
-            console.log('ℹ️ [HomeScreen] Mode: EVENT MANAGER');
+            // console.log('ℹ️ [HomeScreen] Mode: EVENT MANAGER');
         }
 
         // Start background network watcher (persists until sync completes)
         // It won't start again if already running
-        console.log('👀 [HomeScreen] Starting background network watcher...');
+        // console.log('👀 [HomeScreen] Starting background network watcher...');
         startNetworkWatcher((status, subStatus) => {
             setBgSyncVisible(true);
             setBgSyncStatus(status);
@@ -92,13 +92,13 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         if (syncing) return;
 
         setSyncing(true);
-        console.log("🔄 [HomeScreen] Starting Manual Sync...");
+        // console.log("🔄 [HomeScreen] Starting Manual Sync...");
         try {
             // 1. Write to Firebase (Push offline records)
             // We do this first so that the server has the latest local data
-            console.log("📤 [HomeScreen] Calling syncOnspotToFirebase()...");
+            // console.log("📤 [HomeScreen] Calling syncOnspotToFirebase()...");
             const uploadedCount = await syncOnspotToFirebase();
-            console.log(`✅ [HomeScreen] syncOnspotToFirebase() returned: ${uploadedCount} records uploaded.`);
+            // console.log(`✅ [HomeScreen] syncOnspotToFirebase() returned: ${uploadedCount} records uploaded.`);
 
             // 2. Read from Firebase is DISABLED.
             // await syncFromFirebase(); 
@@ -106,9 +106,9 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             Alert.alert("Sync Complete", `Data updated.\nUploaded ${uploadedCount} on-spot registrations to server.`);
         } catch (error) {
             // Fail silent: No alert on error
-            console.log("❌ [HomeScreen] Sync failed silently:", error);
+            // console.log("❌ [HomeScreen] Sync failed silently:", error);
         } finally {
-            console.log("⏹ [HomeScreen] Sync process finished.");
+            // console.log("⏹ [HomeScreen] Sync process finished.");
             setSyncing(false);
         }
     };
