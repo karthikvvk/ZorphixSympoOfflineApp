@@ -56,6 +56,8 @@ export const auth = getAuth(writeApp);
 function generatePassword(eventName: string): string {
     // Special case for on-spot admin (empty eventName)
     if (eventName === '') return 'onspot@zorphix@2026';
+    // Special case for master admin
+    if (eventName === 'Admin') return 'ad##zp##2026';
     const cleaned = eventName.toLowerCase().replace(/\s+/g, '').replace(/°/g, '');
     return `${cleaned}@zorphix@2026`;
 }
