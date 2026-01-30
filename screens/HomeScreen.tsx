@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Alert, Dimensions, Animated, Easing, Modal, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../navigation/types';
+import { RootStackParamList, PAID_EVENTS } from '../navigation/types';
 import { useEventContext } from '../navigation/EventContext';
 import { syncFromFirebase, syncOnspotToFirebase } from '../services/SyncService';
 import { importFromExcel } from '../services/ExcelImportService';
@@ -39,6 +39,9 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
     // Detect On-Spot Registration Desk mode (empty eventName)
     const isOnSpotMode = eventContext?.eventName === '';
+
+    // Check if current event is a paid event (team enrollment disabled for paid events)
+    const isPaidEvent = eventContext?.eventName ? PAID_EVENTS.includes(eventContext.eventName) : false;
 
     // Start network watcher for background sync on mount
     React.useEffect(() => {
@@ -256,13 +259,14 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                             </TouchableOpacity>
 
                             <TouchableOpacity
-                                style={[styles.actionButton, styles.verifyButton, { flex: 1, padding: 20 }]}
+                                style={[styles.actionButton, styles.verifyButton, { flex: 1, padding: 20 }, isPaidEvent && { opacity: 0.4, backgroundColor: '#888' }]}
                                 onPress={() => navigation.navigate('TeamScannerSetup')}
                                 activeOpacity={0.8}
+                                disabled={isPaidEvent}
                             >
-                                <MaterialCommunityIcons name="account-group" size={32} color="#000" style={{ marginBottom: 10 }} />
-                                <Text style={[styles.actionTitle, styles.verifyTitle, { fontSize: 16 }]}>ENROLL TEAM</Text>
-                                <Text style={[styles.actionSubtitle, styles.verifySubtitle, { fontSize: 12 }]}>Team Setup</Text>
+                                <MaterialCommunityIcons name="account-group" size={32} color={isPaidEvent ? '#555' : '#000'} style={{ marginBottom: 10 }} />
+                                <Text style={[styles.actionTitle, styles.verifyTitle, { fontSize: 16 }, isPaidEvent && { color: '#555' }]}>{isPaidEvent ? 'TEAM (N/A)' : 'ENROLL TEAM'}</Text>
+                                <Text style={[styles.actionSubtitle, styles.verifySubtitle, { fontSize: 12 }, isPaidEvent && { color: '#555' }]}>{isPaidEvent ? 'Paid Event' : 'Team Setup'}</Text>
                             </TouchableOpacity>
                         </View>
                     )}
