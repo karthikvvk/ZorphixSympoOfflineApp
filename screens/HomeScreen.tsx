@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Alert, Dimensions, Animated, Easing, Modal, ActivityIndicator } from 'react-native';
+import { PanGestureHandler, PanGestureHandlerGestureEvent, State } from 'react-native-gesture-handler';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList, PAID_EVENTS } from '../navigation/types';
@@ -37,6 +38,43 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     const slideAnim = React.useRef(new Animated.Value(-width * 0.75)).current;
     const { eventContext, setEventContext } = useEventContext();
 
+    // Track current position for gesture handling
+    const menuWidth = width * 0.75;
+    const lastOffsetX = React.useRef(-menuWidth);
+
+    // Gesture event handler - updates position while dragging
+    const onGestureEvent = (event: PanGestureHandlerGestureEvent) => {
+        const { translationX } = event.nativeEvent;
+        // Calculate new position, clamped between closed (-menuWidth) and open (0)
+        let newX = lastOffsetX.current + translationX;
+        newX = Math.max(-menuWidth, Math.min(0, newX));
+        slideAnim.setValue(newX);
+    };
+
+    // Handle gesture end - snap to open or closed
+    const onHandlerStateChange = (event: PanGestureHandlerGestureEvent) => {
+        if (event.nativeEvent.state === State.END) {
+            const { translationX, velocityX } = event.nativeEvent;
+            let newX = lastOffsetX.current + translationX;
+            newX = Math.max(-menuWidth, Math.min(0, newX));
+
+            // Decide whether to open or close based on position and velocity
+            const threshold = menuWidth / 2;
+            const shouldOpen = velocityX > 500 || (velocityX > -500 && newX > -threshold);
+
+            const toValue = shouldOpen ? 0 : -menuWidth;
+            lastOffsetX.current = toValue;
+            setIsMenuOpen(shouldOpen);
+
+            Animated.timing(slideAnim, {
+                toValue,
+                duration: 200,
+                useNativeDriver: true,
+                easing: Easing.out(Easing.ease),
+            }).start();
+        }
+    };
+
     // Detect On-Spot Registration Desk mode (empty eventName)
     const isOnSpotMode = eventContext?.eventName === '';
 
@@ -72,18 +110,29 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }, [eventContext]);
 
     const toggleMenu = () => {
-        const toValue = isMenuOpen ? -width * 0.75 : 0;
+        const opening = !isMenuOpen;
+        const toValue = opening ? 0 : -menuWidth;
+        lastOffsetX.current = toValue;
         Animated.timing(slideAnim, {
             toValue,
             duration: 300,
             useNativeDriver: true,
             easing: Easing.out(Easing.ease),
         }).start();
-        setIsMenuOpen(!isMenuOpen);
+        setIsMenuOpen(opening);
     };
 
     const closeMenu = () => {
-        if (isMenuOpen) toggleMenu();
+        if (isMenuOpen) {
+            lastOffsetX.current = -menuWidth;
+            Animated.timing(slideAnim, {
+                toValue: -menuWidth,
+                duration: 300,
+                useNativeDriver: true,
+                easing: Easing.out(Easing.ease),
+            }).start();
+            setIsMenuOpen(false);
+        }
     };
 
     const handleSync = async () => {
@@ -200,127 +249,132 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     };
 
     return (
-        <View style={styles.container}>
-            <StatusBar barStyle="light-content" backgroundColor="#000000" />
+        <PanGestureHandler
+            onGestureEvent={onGestureEvent}
+            onHandlerStateChange={onHandlerStateChange}
+            activeOffsetX={[-10, 10]}
+        >
+            <View style={styles.container}>
+                <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
-            {/* Header with Menu Button */}
-            <View style={styles.header}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
-                        <MaterialCommunityIcons name="menu" size={28} color="#FFF" />
+                {/* Header with Menu Button */}
+                <View style={styles.header}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
+                            <MaterialCommunityIcons name="menu" size={28} color="#FFF" />
+                        </TouchableOpacity>
+                        <Text style={styles.headerTitle}>ZORPHIX</Text>
+                    </View>
+                    <TouchableOpacity onPress={handleSync} style={styles.syncButton} disabled={syncing}>
+                        {syncing ? (
+                            <ActivityIndicator size="small" color="#FFD700" />
+                        ) : (
+                            <MaterialCommunityIcons name="sync" size={24} color="#FFD700" />
+                        )}
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>ZORPHIX</Text>
                 </View>
-                <TouchableOpacity onPress={handleSync} style={styles.syncButton} disabled={syncing}>
-                    {syncing ? (
-                        <ActivityIndicator size="small" color="#FFD700" />
-                    ) : (
-                        <MaterialCommunityIcons name="sync" size={24} color="#FFD700" />
+
+                {/* Main Content */}
+                <TouchableOpacity activeOpacity={1} onPress={closeMenu} style={styles.mainContent}>
+                    <View style={styles.justName}>
+                        <Text style={styles.eventLabel}>{isOnSpotMode ? 'Registration Desk' : 'Managing Event'}</Text>
+                        <Text style={[styles.eventName, isOnSpotMode && { color: '#4CAF50' }]}>
+                            {isOnSpotMode ? '📋 On-Spot Registration' : (eventContext?.eventName || 'No Event')}
+                        </Text>
+                        <Text style={styles.adminEmail}>{eventContext?.adminEmail}</Text>
+                    </View>
+                    {/* Action Buttons */}
+                    <View style={styles.buttonContainer}>
+                        <TouchableOpacity
+                            style={[styles.actionButton, isOnSpotMode && { borderColor: '#4CAF50' }]}
+                            onPress={handleNewRegister}
+                            activeOpacity={0.8}
+                        >
+                            <MaterialCommunityIcons name="account-plus" size={32} color={isOnSpotMode ? '#4CAF50' : '#ffffffff'} style={{ marginBottom: 10 }} />
+                            <Text style={[styles.actionTitle, isOnSpotMode && { color: '#4CAF50' }]}>
+                                {isOnSpotMode ? 'REGISTER PARTICIPANT' : 'CREATE USER'}
+                            </Text>
+                            <Text style={styles.actionSubtitle}>
+                                {isOnSpotMode ? 'Generate QR Code' : 'Onspot'}
+                            </Text>
+                        </TouchableOpacity>
+
+                        {/* Only show event-specific buttons if NOT in on-spot mode */}
+                        {!isOnSpotMode && (
+                            <View style={{ flexDirection: 'row', gap: 15 }}>
+                                <TouchableOpacity
+                                    style={[styles.actionButton, styles.verifyButton, { flex: 1, padding: 20 }]}
+                                    onPress={() => navigation.navigate('QRScanner', { mode: 'INDIVIDUAL', teamSize: 1 })}
+                                    activeOpacity={0.8}
+                                >
+                                    <MaterialCommunityIcons name="account" size={32} color="#000" style={{ marginBottom: 10 }} />
+                                    <Text style={[styles.actionTitle, styles.verifyTitle, { fontSize: 16, alignContent: 'center' }]}>ENROLL INDIVIDUAL</Text>
+                                    <Text style={[styles.actionSubtitle, styles.verifySubtitle, { fontSize: 12 }]}>Scan Now</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.actionButton, styles.verifyButton, { flex: 1, padding: 20 }, isPaidEvent && { opacity: 0.4, backgroundColor: '#888' }]}
+                                    onPress={() => navigation.navigate('TeamScannerSetup')}
+                                    activeOpacity={0.8}
+                                    disabled={isPaidEvent}
+                                >
+                                    <MaterialCommunityIcons name="account-group" size={32} color={isPaidEvent ? '#555' : '#000'} style={{ marginBottom: 10 }} />
+                                    <Text style={[styles.actionTitle, styles.verifyTitle, { fontSize: 16 }, isPaidEvent && { color: '#555' }]}>{isPaidEvent ? 'TEAM (N/A)' : 'ENROLL TEAM'}</Text>
+                                    <Text style={[styles.actionSubtitle, styles.verifySubtitle, { fontSize: 12 }, isPaidEvent && { color: '#555' }]}>{isPaidEvent ? 'Paid Event' : 'Team Setup'}</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+                    </View>
+                </TouchableOpacity>
+
+                {/* Side Dashboard (Menu) */}
+                <Animated.View style={[
+                    styles.sideMenu,
+                    { transform: [{ translateX: slideAnim }] }
+                ]}>
+                    <View style={styles.menuHeader}>
+                        <Text style={styles.menuTitle}>Dashboard</Text>
+                    </View>
+
+
+
+                    <TouchableOpacity style={styles.menuItem} onPress={handleViewDatabase}>
+                        <MaterialCommunityIcons name="database" size={24} color="#FFF" style={{ marginRight: 15 }} />
+                        <Text style={styles.menuItemText}>View Full Database</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.menuItem} onPress={() => { closeMenu(); navigation.navigate('RecentRegistrations'); }}>
+                        <MaterialCommunityIcons name="clipboard-account" size={24} color="#ffffffff" style={{ marginRight: 15 }} />
+                        <Text style={[styles.menuItemText, { color: '#ffffffff' }]}>Onspot Students (Via Manual Form)</Text>
+                    </TouchableOpacity>
+
+                    <View style={styles.divider} />
+
+                    <TouchableOpacity style={styles.menuItem} onPress={() => { closeMenu(); navigation.navigate('Export'); }}>
+                        <MaterialCommunityIcons name="file-export" size={24} color="#FFF" style={{ marginRight: 15 }} />
+                        <Text style={styles.menuItemText}>Export Data</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.menuItem} onPress={() => { closeMenu(); navigation.navigate('Import'); }}>
+                        <MaterialCommunityIcons name="qrcode-scan" size={24} color="#FFF" style={{ marginRight: 15 }} />
+                        <Text style={[styles.menuItemText, { color: '#ffffffff' }]}>Import From Peers</Text>
+                    </TouchableOpacity>
+                    {/* Replaced generic Import with One-Time Import */}
+                    {/* One-Time Import (Admin Only) */}
+                    {eventContext?.adminEmail === 'admin@zorphix.com' && (
+                        <TouchableOpacity
+                            style={[styles.menuItem, isImportDone && { opacity: 0.5 }]}
+                            onPress={handleOneTimeImport}
+                            disabled={isImportDone}
+                        >
+                            <MaterialCommunityIcons name="file-excel-box" size={24} color="#FFD700" style={{ marginRight: 15 }} />
+                            <Text style={[styles.menuItemText, { color: '#FFD700' }]}>
+                                {isImportDone ? 'Imported (One-Time)' : 'One-Time Import (Excel)'}
+                            </Text>
+                        </TouchableOpacity>
                     )}
-                </TouchableOpacity>
-            </View>
 
-            {/* Main Content */}
-            <TouchableOpacity activeOpacity={1} onPress={closeMenu} style={styles.mainContent}>
-                <View style={styles.justName}>
-                    <Text style={styles.eventLabel}>{isOnSpotMode ? 'Registration Desk' : 'Managing Event'}</Text>
-                    <Text style={[styles.eventName, isOnSpotMode && { color: '#4CAF50' }]}>
-                        {isOnSpotMode ? '📋 On-Spot Registration' : (eventContext?.eventName || 'No Event')}
-                    </Text>
-                    <Text style={styles.adminEmail}>{eventContext?.adminEmail}</Text>
-                </View>
-                {/* Action Buttons */}
-                <View style={styles.buttonContainer}>
-                    <TouchableOpacity
-                        style={[styles.actionButton, isOnSpotMode && { borderColor: '#4CAF50' }]}
-                        onPress={handleNewRegister}
-                        activeOpacity={0.8}
-                    >
-                        <MaterialCommunityIcons name="account-plus" size={32} color={isOnSpotMode ? '#4CAF50' : '#ffffffff'} style={{ marginBottom: 10 }} />
-                        <Text style={[styles.actionTitle, isOnSpotMode && { color: '#4CAF50' }]}>
-                            {isOnSpotMode ? 'REGISTER PARTICIPANT' : 'CREATE USER'}
-                        </Text>
-                        <Text style={styles.actionSubtitle}>
-                            {isOnSpotMode ? 'Generate QR Code' : 'Onspot'}
-                        </Text>
-                    </TouchableOpacity>
-
-                    {/* Only show event-specific buttons if NOT in on-spot mode */}
-                    {!isOnSpotMode && (
-                        <View style={{ flexDirection: 'row', gap: 15 }}>
-                            <TouchableOpacity
-                                style={[styles.actionButton, styles.verifyButton, { flex: 1, padding: 20 }]}
-                                onPress={() => navigation.navigate('QRScanner', { mode: 'INDIVIDUAL', teamSize: 1 })}
-                                activeOpacity={0.8}
-                            >
-                                <MaterialCommunityIcons name="account" size={32} color="#000" style={{ marginBottom: 10 }} />
-                                <Text style={[styles.actionTitle, styles.verifyTitle, { fontSize: 16, alignContent: 'center' }]}>ENROLL INDIVIDUAL</Text>
-                                <Text style={[styles.actionSubtitle, styles.verifySubtitle, { fontSize: 12 }]}>Scan Now</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={[styles.actionButton, styles.verifyButton, { flex: 1, padding: 20 }, isPaidEvent && { opacity: 0.4, backgroundColor: '#888' }]}
-                                onPress={() => navigation.navigate('TeamScannerSetup')}
-                                activeOpacity={0.8}
-                                disabled={isPaidEvent}
-                            >
-                                <MaterialCommunityIcons name="account-group" size={32} color={isPaidEvent ? '#555' : '#000'} style={{ marginBottom: 10 }} />
-                                <Text style={[styles.actionTitle, styles.verifyTitle, { fontSize: 16 }, isPaidEvent && { color: '#555' }]}>{isPaidEvent ? 'TEAM (N/A)' : 'ENROLL TEAM'}</Text>
-                                <Text style={[styles.actionSubtitle, styles.verifySubtitle, { fontSize: 12 }, isPaidEvent && { color: '#555' }]}>{isPaidEvent ? 'Paid Event' : 'Team Setup'}</Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
-                </View>
-            </TouchableOpacity>
-
-            {/* Side Dashboard (Menu) */}
-            <Animated.View style={[
-                styles.sideMenu,
-                { transform: [{ translateX: slideAnim }] }
-            ]}>
-                <View style={styles.menuHeader}>
-                    <Text style={styles.menuTitle}>Dashboard</Text>
-                </View>
-
-
-
-                <TouchableOpacity style={styles.menuItem} onPress={handleViewDatabase}>
-                    <MaterialCommunityIcons name="database" size={24} color="#FFF" style={{ marginRight: 15 }} />
-                    <Text style={styles.menuItemText}>View Full Database</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.menuItem} onPress={() => { closeMenu(); navigation.navigate('RecentRegistrations'); }}>
-                    <MaterialCommunityIcons name="clipboard-account" size={24} color="#ffffffff" style={{ marginRight: 15 }} />
-                    <Text style={[styles.menuItemText, { color: '#ffffffff' }]}>Onspot Students (Via Manual Form)</Text>
-                </TouchableOpacity>
-
-                <View style={styles.divider} />
-
-                <TouchableOpacity style={styles.menuItem} onPress={() => { closeMenu(); navigation.navigate('Export'); }}>
-                    <MaterialCommunityIcons name="file-export" size={24} color="#FFF" style={{ marginRight: 15 }} />
-                    <Text style={styles.menuItemText}>Export Data</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.menuItem} onPress={() => { closeMenu(); navigation.navigate('Import'); }}>
-                    <MaterialCommunityIcons name="qrcode-scan" size={24} color="#FFF" style={{ marginRight: 15 }} />
-                    <Text style={[styles.menuItemText, { color: '#ffffffff' }]}>Import From Peers</Text>
-                </TouchableOpacity>
-                {/* Replaced generic Import with One-Time Import */}
-                {/* One-Time Import (Admin Only) */}
-                {eventContext?.adminEmail === 'admin@zorphix.com' && (
-                    <TouchableOpacity
-                        style={[styles.menuItem, isImportDone && { opacity: 0.5 }]}
-                        onPress={handleOneTimeImport}
-                        disabled={isImportDone}
-                    >
-                        <MaterialCommunityIcons name="file-excel-box" size={24} color="#FFD700" style={{ marginRight: 15 }} />
-                        <Text style={[styles.menuItemText, { color: '#FFD700' }]}>
-                            {isImportDone ? 'Imported (One-Time)' : 'One-Time Import (Excel)'}
-                        </Text>
-                    </TouchableOpacity>
-                )}
-
-                {/* Kept original Import for QR if needed? Or just remove? 
+                    {/* Kept original Import for QR if needed? Or just remove? 
                      User said: "while in the sidebar add one more button named: one-time-import"
                      It does not explicitly say remove the old Import button which was for QR.
                      However, previous prompts replaced "import from firebase" with "excel import".
@@ -330,92 +384,93 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
 
 
-                <View style={styles.divider} />
+                    <View style={styles.divider} />
 
-                <TouchableOpacity style={styles.menuItem} onPress={handleSync}>
-                    <MaterialCommunityIcons name="sync" size={24} color="#FFF" style={{ marginRight: 15 }} />
-                    <Text style={styles.menuItemText}>Sync with Server</Text>
-                </TouchableOpacity>
+                    <TouchableOpacity style={styles.menuItem} onPress={handleSync}>
+                        <MaterialCommunityIcons name="sync" size={24} color="#FFF" style={{ marginRight: 15 }} />
+                        <Text style={styles.menuItemText}>Sync with Server</Text>
+                    </TouchableOpacity>
 
-                <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
-                    <MaterialCommunityIcons name="logout" size={24} color="#FF6B6B" style={{ marginRight: 15 }} />
-                    <Text style={[styles.menuItemText, { color: '#FF6B6B' }]}>Logout</Text>
-                </TouchableOpacity>
-            </Animated.View>
+                    <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
+                        <MaterialCommunityIcons name="logout" size={24} color="#FF6B6B" style={{ marginRight: 15 }} />
+                        <Text style={[styles.menuItemText, { color: '#FF6B6B' }]}>Logout</Text>
+                    </TouchableOpacity>
+                </Animated.View>
 
-            {/* Overlay for closing menu when open */}
-            {isMenuOpen && (
-                <TouchableOpacity style={styles.overlay} onPress={toggleMenu} activeOpacity={1} />
-            )}
+                {/* Overlay for closing menu when open */}
+                {isMenuOpen && (
+                    <TouchableOpacity style={styles.overlay} onPress={toggleMenu} activeOpacity={1} />
+                )}
 
-            {/* Verification Mode Modal */}
-            <Modal
-                visible={showVerifyModal}
-                transparent={true}
-                animationType="fade"
-                onRequestClose={() => setShowVerifyModal(false)}
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.verifyModalContent}>
-                        <Text style={styles.verifyModalTitle}>Select Verification Mode</Text>
+                {/* Verification Mode Modal */}
+                <Modal
+                    visible={showVerifyModal}
+                    transparent={true}
+                    animationType="fade"
+                    onRequestClose={() => setShowVerifyModal(false)}
+                >
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.verifyModalContent}>
+                            <Text style={styles.verifyModalTitle}>Select Verification Mode</Text>
 
-                        {/* Mode Segmented Control */}
-                        <View style={styles.segmentContainer}>
-                            <TouchableOpacity
-                                style={[styles.segmentButton, verifyMode === 'INDIVIDUAL' && styles.segmentActive]}
-                                onPress={() => setVerifyMode('INDIVIDUAL')}
-                            >
-                                <Text style={[styles.segmentText, verifyMode === 'INDIVIDUAL' && styles.segmentTextActive]}>Individual</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.segmentButton, verifyMode === 'TEAM' && styles.segmentActive]}
-                                onPress={() => setVerifyMode('TEAM')}
-                            >
-                                <Text style={[styles.segmentText, verifyMode === 'TEAM' && styles.segmentTextActive]}>Team</Text>
-                            </TouchableOpacity>
-                        </View>
+                            {/* Mode Segmented Control */}
+                            <View style={styles.segmentContainer}>
+                                <TouchableOpacity
+                                    style={[styles.segmentButton, verifyMode === 'INDIVIDUAL' && styles.segmentActive]}
+                                    onPress={() => setVerifyMode('INDIVIDUAL')}
+                                >
+                                    <Text style={[styles.segmentText, verifyMode === 'INDIVIDUAL' && styles.segmentTextActive]}>Individual</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.segmentButton, verifyMode === 'TEAM' && styles.segmentActive]}
+                                    onPress={() => setVerifyMode('TEAM')}
+                                >
+                                    <Text style={[styles.segmentText, verifyMode === 'TEAM' && styles.segmentTextActive]}>Team</Text>
+                                </TouchableOpacity>
+                            </View>
 
-                        {/* Team Info Text */}
-                        {verifyMode === 'TEAM' && (
-                            <Text style={{ color: '#888', textAlign: 'center', marginBottom: 20 }}>
-                                You will be asked to enter Team Name and Size in the next screen.
-                            </Text>
-                        )}
+                            {/* Team Info Text */}
+                            {verifyMode === 'TEAM' && (
+                                <Text style={{ color: '#888', textAlign: 'center', marginBottom: 20 }}>
+                                    You will be asked to enter Team Name and Size in the next screen.
+                                </Text>
+                            )}
 
-                        <View style={styles.verifyActionButtons}>
-                            <TouchableOpacity
-                                style={[styles.modalBtn, styles.modalBtnCancel]}
-                                onPress={() => setShowVerifyModal(false)}
-                            >
-                                <Text style={styles.modalBtnTextCancel}>Cancel</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.modalBtn, styles.modalBtnConfirm]}
-                                onPress={handleStartScanning}
-                            >
-                                <Text style={styles.modalBtnTextConfirm}>Start Scanning</Text>
-                            </TouchableOpacity>
+                            <View style={styles.verifyActionButtons}>
+                                <TouchableOpacity
+                                    style={[styles.modalBtn, styles.modalBtnCancel]}
+                                    onPress={() => setShowVerifyModal(false)}
+                                >
+                                    <Text style={styles.modalBtnTextCancel}>Cancel</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.modalBtn, styles.modalBtnConfirm]}
+                                    onPress={handleStartScanning}
+                                >
+                                    <Text style={styles.modalBtnTextConfirm}>Start Scanning</Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </View>
-                </View>
-            </Modal>
+                </Modal>
 
-            {/* Search floating action button */}
-            <TouchableOpacity
-                style={styles.fab}
-                onPress={() => { closeMenu(); navigation.navigate('Search'); }}
-                activeOpacity={0.8}
-            >
-                <MaterialCommunityIcons name="magnify" size={30} color="#000" />
-            </TouchableOpacity>
+                {/* Search floating action button */}
+                <TouchableOpacity
+                    style={styles.fab}
+                    onPress={() => { closeMenu(); navigation.navigate('Search'); }}
+                    activeOpacity={0.8}
+                >
+                    <MaterialCommunityIcons name="magnify" size={30} color="#000" />
+                </TouchableOpacity>
 
-            {/* Background Sync Overlay */}
-            <SyncOverlay
-                visible={bgSyncVisible}
-                status={bgSyncStatus}
-                subStatus={bgSyncSubStatus}
-            />
-        </View>
+                {/* Background Sync Overlay */}
+                <SyncOverlay
+                    visible={bgSyncVisible}
+                    status={bgSyncStatus}
+                    subStatus={bgSyncSubStatus}
+                />
+            </View>
+        </PanGestureHandler>
     );
 };
 
