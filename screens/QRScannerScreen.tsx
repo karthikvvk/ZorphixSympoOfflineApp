@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Text, View, StyleSheet, Alert, TouchableOpacity, ActivityIndicator, Animated, Modal, Image } from 'react-native';
+import { Text, View, StyleSheet, Alert, TouchableOpacity, ActivityIndicator, Animated, Modal, Image, BackHandler } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -7,7 +7,7 @@ import { RootStackParamList, PAID_EVENTS } from '../navigation/types';
 import { useEventContext } from '../navigation/EventContext';
 import { getParticipantByUID, getParticipantByUIDAndEvent, incrementParticipation, insertParticipant, checkParticipantExists, getParticipantByEmailOrPhone, getParticipantTeams } from '../services/sqlite';
 import { checkPaymentStatus, getParticipantFromFirebase, registerUserOnSpot } from '../services/firebase';
-import { silentBackup } from '../services/BackupService';
+import { silentBackup, requestStoragePermission } from '../services/BackupService';
 // import { Modal, Image } from 'react-native'; // Removed redundant import
 import { RouteProp } from '@react-navigation/native';
 
@@ -583,24 +583,47 @@ export default function QRScannerScreen({ navigation, route }: Props) {
         resetScanState();
     };
 
+    // Strict Permission Enforcement Effect
+    useEffect(() => {
+        const checkPermissions = async () => {
+            // 1. Check Camera Permission
+            if (permission && !permission.granted && permission.canAskAgain) {
+                const result = await requestPermission();
+                if (!result.granted) {
+                    //console.log('❌ Camera permission denied. Exiting app.');
+                    BackHandler.exitApp();
+                    return;
+                }
+            } else if (permission && !permission.granted && !permission.canAskAgain) {
+                // Denied permanently
+                //console.log('❌ Camera permission permanently denied. Exiting app.');
+                BackHandler.exitApp();
+                return;
+            }
+
+            // 2. Check Storage Permission (Android Only)
+            const storageGranted = await requestStoragePermission();
+            if (!storageGranted) {
+                //console.log('❌ Storage permission denied. Exiting app.');
+                BackHandler.exitApp();
+                return;
+            }
+        };
+
+        checkPermissions();
+    }, [permission]); // run when camera permission object updates
+
+    // Loading state while waiting for permission object
     if (!permission) {
         return <View style={styles.container} />;
     }
 
+    // If still not granted (should have exited, but as a fallback/interim render)
     if (!permission.granted) {
         return (
-            <View style={styles.container}>
-                <View style={styles.permissionContainer}>
-                    <MaterialCommunityIcons name="camera-off" size={64} color="#FFD700" style={{ marginBottom: 20 }} />
-                    <Text style={styles.text}>Camera Permission Required</Text>
-                    <Text style={styles.subText}>We need camera access to scan QR codes</Text>
-                    <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
-                        <Text style={styles.permissionButtonText}>Grant Permission</Text>
-                    </TouchableOpacity>
-                </View>
-                <TouchableOpacity style={styles.closeButton} onPress={() => navigation.goBack()}>
-                    <MaterialCommunityIcons name="close" size={24} color="#FFD700" />
-                </TouchableOpacity>
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color="#FFD700" />
+                <Text style={{ color: '#fff', marginTop: 20 }}>Checking Permissions...</Text>
             </View>
         );
     }

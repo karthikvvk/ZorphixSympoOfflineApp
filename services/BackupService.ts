@@ -46,53 +46,61 @@ const saveDirectoryUri = async (uri: string): Promise<void> => {
  */
 export const requestStoragePermission = async (): Promise<boolean> => {
     //console.log('📁 [BackupService] requestStoragePermission called');
-    //console.log('📁 Platform:', Platform.OS);
 
     if (Platform.OS !== 'android') {
-        //console.log('📁 Not Android, skipping permission request');
         return true;
     }
 
     try {
-        // Check if we already have a saved directory from previous session
+        // 1. Check if we already have a saved directory
         const savedUri = await loadSavedDirectoryUri();
         if (savedUri) {
-            //console.log('📁 Already have saved directory access, skipping prompt');
-            return true;
+            try {
+                // VERIFY ACCESS: Try to read the directory
+                // If permission was revoked, this will throw an error
+                await FileSystem.StorageAccessFramework.readDirectoryAsync(savedUri);
+                //console.log('✅ Verified access to saved directory');
+                return true;
+            } catch (error) {
+                //console.log('⚠️ Saved directory access revoked or invalid. Requesting again...');
+                // Clear the invalid URI
+                await AsyncStorage.removeItem(STORAGE_KEY_DIRECTORY_URI);
+                grantedDirectoryUri = null;
+            }
         }
 
-        // Show alert to explain what we're doing
-        //console.log('📁 Showing folder selection dialog...');
-        Alert.alert(
-            '📁 Select Backup Folder',
-            'Please select Downloads or another folder where Zorphix can save backup files. This ensures your data is safe even if the app is uninstalled.',
-            [
-                {
-                    text: 'Select Folder',
-                    onPress: async () => {
-                        try {
-                            //console.log('📁 Opening SAF folder picker...');
-                            const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
-                            if (permissions.granted) {
-                                grantedDirectoryUri = permissions.directoryUri;
-                                await saveDirectoryUri(permissions.directoryUri);
-                                //console.log('✅ Directory access granted:', grantedDirectoryUri);
-                                Alert.alert('✅ Success', 'Backup folder selected! Backups will be saved there.');
-                            } else {
-                                //console.log('❌ Directory access denied by user');
-                                Alert.alert('⚠️ Warning', 'Backup will only be saved to app internal storage.');
+        // 2. Request Permission with strict result
+        return new Promise((resolve) => {
+            Alert.alert(
+                '📁 Select Backup Folder',
+                'Please select Downloads or another folder where Zorphix can save backup files. \n\nNOTE: You MUST select a folder to use the app.',
+                [
+                    {
+                        text: 'Select Folder',
+                        onPress: async () => {
+                            try {
+                                const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+                                if (permissions.granted) {
+                                    grantedDirectoryUri = permissions.directoryUri;
+                                    await saveDirectoryUri(permissions.directoryUri);
+                                    Alert.alert('✅ Success', 'Backup folder selected!');
+                                    resolve(true); // STRICT: Only true if actually granted
+                                } else {
+                                    // User backed out of the system picker
+                                    //console.log('❌ User cancelled system picker');
+                                    resolve(false);
+                                }
+                            } catch (err) {
+                                //console.log('❌ SAF permission error:', err);
+                                resolve(false);
                             }
-                        } catch (err) {
-                            //console.log('❌ SAF permission error:', err);
-                            Alert.alert('Error', 'Failed to access folder. Backup will use app storage.');
                         }
                     }
-                },
+                ],
+                { cancelable: false } // Prevent clicking outside
+            );
+        });
 
-            ]
-        );
-
-        return true;
     } catch (err) {
         console.warn('📁 Storage permission error:', err);
         return false;
