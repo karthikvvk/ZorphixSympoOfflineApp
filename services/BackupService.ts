@@ -17,12 +17,12 @@ const loadSavedDirectoryUri = async (): Promise<string | null> => {
     try {
         const saved = await AsyncStorage.getItem(STORAGE_KEY_DIRECTORY_URI);
         if (saved) {
-            console.log('📁 Loaded saved directory URI:', saved);
+            //console.log('📁 Loaded saved directory URI:', saved);
             grantedDirectoryUri = saved;
             return saved;
         }
     } catch (err) {
-        console.log('📁 Could not load saved directory URI:', err);
+        //console.log('📁 Could not load saved directory URI:', err);
     }
     return null;
 };
@@ -33,9 +33,9 @@ const loadSavedDirectoryUri = async (): Promise<string | null> => {
 const saveDirectoryUri = async (uri: string): Promise<void> => {
     try {
         await AsyncStorage.setItem(STORAGE_KEY_DIRECTORY_URI, uri);
-        console.log('📁 Saved directory URI to storage');
+        //console.log('📁 Saved directory URI to storage');
     } catch (err) {
-        console.log('📁 Could not save directory URI:', err);
+        //console.log('📁 Could not save directory URI:', err);
     }
 };
 
@@ -45,11 +45,11 @@ const saveDirectoryUri = async (uri: string): Promise<void> => {
  * This is called at app startup
  */
 export const requestStoragePermission = async (): Promise<boolean> => {
-    console.log('📁 [BackupService] requestStoragePermission called');
-    console.log('📁 Platform:', Platform.OS);
+    //console.log('📁 [BackupService] requestStoragePermission called');
+    //console.log('📁 Platform:', Platform.OS);
 
     if (Platform.OS !== 'android') {
-        console.log('📁 Not Android, skipping permission request');
+        //console.log('📁 Not Android, skipping permission request');
         return true;
     }
 
@@ -57,12 +57,12 @@ export const requestStoragePermission = async (): Promise<boolean> => {
         // Check if we already have a saved directory from previous session
         const savedUri = await loadSavedDirectoryUri();
         if (savedUri) {
-            console.log('📁 Already have saved directory access, skipping prompt');
+            //console.log('📁 Already have saved directory access, skipping prompt');
             return true;
         }
 
         // Show alert to explain what we're doing
-        console.log('📁 Showing folder selection dialog...');
+        //console.log('📁 Showing folder selection dialog...');
         Alert.alert(
             '📁 Select Backup Folder',
             'Please select Downloads or another folder where Zorphix can save backup files. This ensures your data is safe even if the app is uninstalled.',
@@ -71,19 +71,19 @@ export const requestStoragePermission = async (): Promise<boolean> => {
                     text: 'Select Folder',
                     onPress: async () => {
                         try {
-                            console.log('📁 Opening SAF folder picker...');
+                            //console.log('📁 Opening SAF folder picker...');
                             const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
                             if (permissions.granted) {
                                 grantedDirectoryUri = permissions.directoryUri;
                                 await saveDirectoryUri(permissions.directoryUri);
-                                console.log('✅ Directory access granted:', grantedDirectoryUri);
+                                //console.log('✅ Directory access granted:', grantedDirectoryUri);
                                 Alert.alert('✅ Success', 'Backup folder selected! Backups will be saved there.');
                             } else {
-                                console.log('❌ Directory access denied by user');
+                                //console.log('❌ Directory access denied by user');
                                 Alert.alert('⚠️ Warning', 'Backup will only be saved to app internal storage.');
                             }
                         } catch (err) {
-                            console.log('❌ SAF permission error:', err);
+                            //console.log('❌ SAF permission error:', err);
                             Alert.alert('Error', 'Failed to access folder. Backup will use app storage.');
                         }
                     }
@@ -174,24 +174,24 @@ const CSV_HEADER = [
  * APPENDS to existing file - does not create duplicates
  */
 export const backupParticipantsToDownloads = async (): Promise<{ success: boolean; count: number; path?: string }> => {
-    console.log('📦 [BackupService] backupParticipantsToDownloads called');
+    //console.log('📦 [BackupService] backupParticipantsToDownloads called');
 
     if (Platform.OS === 'web') {
-        console.log('⚠️ Backup not supported on web');
+        //console.log('⚠️ Backup not supported on web');
         return { success: false, count: 0 };
     }
 
     try {
         // Get all participants
         const participants = await getAllParticipants();
-        console.log(`📦 Total participants in DB: ${participants.length}`);
+        //console.log(`📦 Total participants in DB: ${participants.length}`);
 
         // Filter only those who have participated (attended)
         const attendedParticipants = participants.filter(p => (p.participated || 0) > 0);
-        console.log(`📦 Attended participants: ${attendedParticipants.length}`);
+        //console.log(`📦 Attended participants: ${attendedParticipants.length}`);
 
         if (attendedParticipants.length === 0) {
-            console.log('ℹ️ No attended participants to backup');
+            //console.log('ℹ️ No attended participants to backup');
             return { success: true, count: 0 };
         }
 
@@ -207,7 +207,7 @@ export const backupParticipantsToDownloads = async (): Promise<{ success: boolea
         });
 
         const uniqueParticipants = Array.from(uniqueMap.values());
-        console.log(`📦 Unique participants to backup: ${uniqueParticipants.length}`);
+        //console.log(`📦 Unique participants to backup: ${uniqueParticipants.length}`);
 
         // Fixed filename - always append to same file
         const filename = `zorphix_backup.csv`;
@@ -247,28 +247,28 @@ export const backupParticipantsToDownloads = async (): Promise<{ success: boolea
                         const [uid, eventId, name, phone, email] = parts;
                         const key = `${(email || '').toLowerCase()}_${phone || ''}_${eventId}`;
                         existingKeys.add(key);
-                        console.log(`📦 Existing entry ${idx + 1}: ${name} | Key: ${key}`);
+                        //console.log(`📦 Existing entry ${idx + 1}: ${name} | Key: ${key}`);
                     }
                 }
             });
-            console.log(`📦 Found ${existingKeys.size} existing entries in backup file`);
+            //console.log(`📦 Found ${existingKeys.size} existing entries in backup file`);
         } catch (readErr) {
             // File doesn't exist yet, that's fine
-            console.log('📦 No existing backup file, creating new one');
+            //console.log('📦 No existing backup file, creating new one');
         }
 
         // Filter out participants that already exist in backup
         const newParticipants = uniqueParticipants.filter(p => {
             const key = `${(p.email || '').toLowerCase()}_${p.phone || ''}_${p.event_id}`;
             const exists = existingKeys.has(key);
-            console.log(`📦 Checking ${p.name} | Key: ${key} | Exists: ${exists}`);
+            //console.log(`📦 Checking ${p.name} | Key: ${key} | Exists: ${exists}`);
             return !exists;
         });
 
-        console.log(`📦 New participants to add: ${newParticipants.length}`);
+        //console.log(`📦 New participants to add: ${newParticipants.length}`);
 
         if (newParticipants.length === 0) {
-            console.log('📦 All participants already in backup, nothing to add');
+            //console.log('📦 All participants already in backup, nothing to add');
             return { success: true, count: 0, path: appDocPath };
         }
 
@@ -291,23 +291,23 @@ export const backupParticipantsToDownloads = async (): Promise<{ success: boolea
         await FileSystem.writeAsStringAsync(appDocPath, csvContent, {
             encoding: FileSystem.EncodingType.UTF8
         });
-        console.log(`✅ Backup updated: added ${newParticipants.length} new entries to ${appDocPath}`);
+        //console.log(`✅ Backup updated: added ${newParticipants.length} new entries to ${appDocPath}`);
 
         // Also save to Downloads folder if permission was granted
         if (Platform.OS === 'android' && grantedDirectoryUri) {
             try {
-                console.log('📦 Saving to Downloads folder:', grantedDirectoryUri);
+                //console.log('📦 Saving to Downloads folder:', grantedDirectoryUri);
 
                 // Try to find existing file in the directory and delete it first
                 try {
                     const files = await FileSystem.StorageAccessFramework.readDirectoryAsync(grantedDirectoryUri);
                     const existingFile = files.find(f => f.includes('zorphix_backup'));
                     if (existingFile) {
-                        console.log('📦 Deleting existing file:', existingFile);
+                        //console.log('📦 Deleting existing file:', existingFile);
                         await FileSystem.deleteAsync(existingFile, { idempotent: true });
                     }
                 } catch (listErr) {
-                    console.log('📦 Could not list/delete existing files:', listErr);
+                    //console.log('📦 Could not list/delete existing files:', listErr);
                 }
 
                 // Create new file with full content
@@ -321,13 +321,13 @@ export const backupParticipantsToDownloads = async (): Promise<{ success: boolea
                     encoding: FileSystem.EncodingType.UTF8
                 });
 
-                console.log('✅ Backup saved to Downloads:', fileUri);
+                //console.log('✅ Backup saved to Downloads:', fileUri);
                 return { success: true, count: newParticipants.length, path: fileUri };
             } catch (downloadErr) {
-                console.log('⚠️ Could not save to Downloads:', downloadErr);
+                //console.log('⚠️ Could not save to Downloads:', downloadErr);
             }
         } else if (Platform.OS === 'android') {
-            console.log('📦 No directory selected - backup only in app directory');
+            //console.log('📦 No directory selected - backup only in app directory');
         }
 
         return { success: true, count: newParticipants.length, path: appDocPath };
@@ -346,10 +346,10 @@ export const silentBackup = async (): Promise<void> => {
     try {
         const result = await backupParticipantsToDownloads();
         if (result.success && result.count > 0) {
-            console.log(`📦 Backup complete: ${result.count} participants saved`);
+            //console.log(`📦 Backup complete: ${result.count} participants saved`);
         }
     } catch (error) {
-        console.log('⚠️ Silent backup failed:', error);
+        //console.log('⚠️ Silent backup failed:', error);
         // Don't throw - this is a background operation
     }
 };

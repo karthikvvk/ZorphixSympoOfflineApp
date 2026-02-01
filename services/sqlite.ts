@@ -39,7 +39,7 @@ if (Platform.OS !== 'web') {
 // Initialize the database table with extended schema
 export const initParticipantDB = () => {
     if (Platform.OS === 'web') {
-        // console.log("Web Mock DB Initialized (with localStorage)");
+        // //console.log("Web Mock DB Initialized (with localStorage)");
         return;
     }
     if (!db) return;
@@ -72,7 +72,7 @@ export const initParticipantDB = () => {
                     PRIMARY KEY (uid, event_id)
                 );`
             );
-            // console.log("✅ New Database Created");
+            // //console.log("✅ New Database Created");
             return;
         }
 
@@ -82,7 +82,7 @@ export const initParticipantDB = () => {
         const hasEventType = tableInfo.some((col: any) => col.name === 'event_type');
 
         if (hasCheckedIn || !hasEventType) {
-            // console.log("⚡ Starting Schema Migration: Refactoring to Simplified Schema");
+            // //console.log("⚡ Starting Schema Migration: Refactoring to Simplified Schema");
 
             db.execSync('BEGIN TRANSACTION;');
             try {
@@ -143,7 +143,7 @@ export const initParticipantDB = () => {
                 db.execSync(`DROP TABLE participants_old;`);
 
                 db.execSync('COMMIT;');
-                // console.log("✅ Schema Migration Complete: Schema Simplified.");
+                // //console.log("✅ Schema Migration Complete: Schema Simplified.");
             } catch (migrationError) {
                 // console.error("Migration failed, rolling back", migrationError);
                 db.execSync('ROLLBACK;');
@@ -289,7 +289,7 @@ export const getParticipantByUIDAndEvent = async (
     email?: string,
     phone?: string
 ): Promise<any> => {
-    console.log('🔍 getParticipantByUIDAndEvent called:', { uid, eventId, email, phone });
+    //console.log('🔍 getParticipantByUIDAndEvent called:', { uid, eventId, email, phone });
 
     if (Platform.OS === 'web') {
         // First try by UID
@@ -304,7 +304,7 @@ export const getParticipantByUIDAndEvent = async (
                 ((email && p.email === email) || (phone && p.phone === phone))
             );
         }
-        console.log('🔍 Web search result:', p ? `Found: ${p.name}` : 'Not found');
+        //console.log('🔍 Web search result:', p ? `Found: ${p.name}` : 'Not found');
         return p || null;
     }
     if (!db) return null;
@@ -317,7 +317,7 @@ export const getParticipantByUIDAndEvent = async (
         );
 
         if (result) {
-            console.log('✅ Found by UID:', result.name, '| DB UID:', result.uid);
+            //console.log('✅ Found by UID:', result.name, '| DB UID:', result.uid);
             return result;
         }
 
@@ -328,7 +328,7 @@ export const getParticipantByUIDAndEvent = async (
                 [email, eventId]
             );
             if (result) {
-                console.log('✅ Found by EMAIL:', result.name, '| DB UID:', result.uid);
+                //console.log('✅ Found by EMAIL:', result.name, '| DB UID:', result.uid);
                 return result;
             }
         }
@@ -340,12 +340,12 @@ export const getParticipantByUIDAndEvent = async (
                 [phone, eventId]
             );
             if (result) {
-                console.log('✅ Found by PHONE:', result.name, '| DB UID:', result.uid);
+                //console.log('✅ Found by PHONE:', result.name, '| DB UID:', result.uid);
                 return result;
             }
         }
 
-        console.log('❌ Not found by UID, email, or phone');
+        //console.log('❌ Not found by UID, email, or phone');
         return null;
     } catch (e) {
         console.error("Get participant by UID and event failed", e);
@@ -388,7 +388,7 @@ export const incrementParticipation = (uid: string, eventId: string, teamName?: 
                          sync_status = 0
                      WHERE uid = ? AND event_id = ?;`;
             params = [timestamp, teamName, uid, eventId];
-            // console.log(`Incremented participation: ${uid} for ${eventId} (Team: ${teamName})`);
+            // //console.log(`Incremented participation: ${uid} for ${eventId} (Team: ${teamName})`);
         } else {
             query = `UPDATE participants 
                      SET participated = participated + 1, 
@@ -396,7 +396,7 @@ export const incrementParticipation = (uid: string, eventId: string, teamName?: 
                          sync_status = 0
                      WHERE uid = ? AND event_id = ?;`;
             params = [timestamp, uid, eventId];
-            // console.log(`Incremented participation: ${uid} for ${eventId}`);
+            // //console.log(`Incremented participation: ${uid} for ${eventId}`);
         }
 
         db.runSync(query, params);

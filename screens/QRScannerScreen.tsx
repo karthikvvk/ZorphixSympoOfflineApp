@@ -130,16 +130,16 @@ export default function QRScannerScreen({ navigation, route }: Props) {
         setScanned(true);
         setProcessing(true);
 
-        console.log('='.repeat(60));
-        console.log('🔍 QR SCAN STARTED');
-        console.log('='.repeat(60));
-        console.log('📋 Current Event:', currentEvent);
-        console.log('💰 Is Paid Event:', isPaidEvent);
-        console.log('👥 Mode:', mode);
+        //console.log('='.repeat(60));
+        //console.log('🔍 QR SCAN STARTED');
+        //console.log('='.repeat(60));
+        //console.log('📋 Current Event:', currentEvent);
+        //console.log('💰 Is Paid Event:', isPaidEvent);
+        //console.log('👥 Mode:', mode);
 
         try {
             const scannedData = data.trim();
-            console.log('📱 Raw Scanned Data:', scannedData);
+            //console.log('📱 Raw Scanned Data:', scannedData);
 
             let uid = scannedData;
             let prefilledData: any = {};
@@ -147,7 +147,7 @@ export default function QRScannerScreen({ navigation, route }: Props) {
             // Try to parse JSON
             try {
                 const json = JSON.parse(scannedData);
-                console.log('✅ Parsed as JSON:', JSON.stringify(json, null, 2));
+                //console.log('✅ Parsed as JSON:', JSON.stringify(json, null, 2));
                 if (json.uid) {
                     uid = json.uid;
                     prefilledData = {
@@ -159,17 +159,17 @@ export default function QRScannerScreen({ navigation, route }: Props) {
                         prefilledDept: json.dept || json.department || '',
                         prefilledYear: json.year || ''
                     };
-                    console.log('📊 Prefilled Data from QR:', JSON.stringify(prefilledData, null, 2));
+                    //console.log('📊 Prefilled Data from QR:', JSON.stringify(prefilledData, null, 2));
                 }
             } catch (e) {
-                console.log('⚠️ Not JSON, treating as raw UID');
+                //console.log('⚠️ Not JSON, treating as raw UID');
             }
 
-            console.log('🔑 Final UID:', uid);
+            //console.log('🔑 Final UID:', uid);
 
             // Check for duplicates in current team session
             if (mode === 'TEAM' && teamMembers.some(m => m.uid === uid)) {
-                console.log('❌ DUPLICATE SCAN - Already in team session');
+                //console.log('❌ DUPLICATE SCAN - Already in team session');
                 Alert.alert(
                     "⚠️ Duplicate Scan",
                     "This member has already been scanned for this team.",
@@ -180,11 +180,11 @@ export default function QRScannerScreen({ navigation, route }: Props) {
 
             // Check if user exists in LOCAL DB for THIS event
             // Pass email/phone to also search by those (handles Excel import UIDs vs Firebase Auth UIDs)
-            console.log('-'.repeat(40));
-            console.log('🗄️ STEP 1: Checking LOCAL DB for user...');
-            console.log('   Searching by UID:', uid);
-            console.log('   Also searching by email:', prefilledData.prefilledEmail || '(none)');
-            console.log('   Also searching by phone:', prefilledData.prefilledPhone || '(none)');
+            //console.log('-'.repeat(40));
+            //console.log('🗄️ STEP 1: Checking LOCAL DB for user...');
+            //console.log('   Searching by UID:', uid);
+            //console.log('   Also searching by email:', prefilledData.prefilledEmail || '(none)');
+            //console.log('   Also searching by phone:', prefilledData.prefilledPhone || '(none)');
             let participant = await getParticipantByUIDAndEvent(
                 uid,
                 currentEvent,
@@ -194,22 +194,22 @@ export default function QRScannerScreen({ navigation, route }: Props) {
 
             // === USER EXISTS IN LOCAL DB ===
             if (participant) {
-                console.log('✅ USER FOUND IN LOCAL DB!');
-                console.log('   Name:', participant.name);
-                console.log('   UID:', participant.uid);
-                console.log('   Event:', participant.event_name);
-                console.log('   Participated Count:', participant.participated);
-                console.log('   Payment Verified (local):', participant.payment_verified);
-                console.log('-'.repeat(40));
+                //console.log('✅ USER FOUND IN LOCAL DB!');
+                //console.log('   Name:', participant.name);
+                //console.log('   UID:', participant.uid);
+                //console.log('   Event:', participant.event_name);
+                //console.log('   Participated Count:', participant.participated);
+                //console.log('   Payment Verified (local):', participant.payment_verified);
+                //console.log('-'.repeat(40));
 
                 // === ALREADY ATTENDED CHECK ===
                 if (participant.participated > 1) {
-                    console.log('⚠️ USER HAS ALREADY ATTENDED!');
-                    console.log('   Times attended:', participant.participated);
-                    console.log('   Is Paid Event:', isPaidEvent);
+                    //console.log('⚠️ USER HAS ALREADY ATTENDED!');
+                    //console.log('   Times attended:', participant.participated);
+                    //console.log('   Is Paid Event:', isPaidEvent);
 
                     if (isPaidEvent) {
-                        console.log('🚫 DECISION: BLOCK - Paid event, no re-entry allowed');
+                        //console.log('🚫 DECISION: BLOCK - Paid event, no re-entry allowed');
                         Alert.alert(
                             "🚫 Unauthorized Entry Blocked",
                             `${participant.name} has already entered ${participant.participated} time(s).\n\nEvent: ${currentEvent}\n\nPaid events allow only ONE entry per ticket.`,
@@ -217,7 +217,7 @@ export default function QRScannerScreen({ navigation, route }: Props) {
                         );
                         return;
                     } else {
-                        console.log('⚠️ DECISION: WARN - Non-paid event, allow re-entry with warning');
+                        //console.log('⚠️ DECISION: WARN - Non-paid event, allow re-entry with warning');
                         Alert.alert(
                             "⚠️ Re-attendance Detected",
                             `${participant.name} has already attended ${participant.participated} time(s).\n\nEvent: ${currentEvent}\n\nAllow re-entry?`,
@@ -226,7 +226,7 @@ export default function QRScannerScreen({ navigation, route }: Props) {
                                 {
                                     text: "Enroll Anyway",
                                     onPress: () => {
-                                        console.log('✅ User chose to enroll anyway');
+                                        //console.log('✅ User chose to enroll anyway');
                                         finalizeEntry(participant);
                                     }
                                 }
@@ -237,63 +237,63 @@ export default function QRScannerScreen({ navigation, route }: Props) {
                 }
 
                 // === NOT ATTENDED YET ===
-                console.log('✅ User has NOT attended yet (participated = 0)');
+                //console.log('✅ User has NOT attended yet (participated = 0)');
 
                 // SIMPLIFIED LOGIC: If user EXISTS in local DB for this event = THEY PAID
                 // (They were either synced from Firebase after payment, or registered on-spot with payment)
                 if (isPaidEvent) {
-                    console.log('💰 PAID EVENT - User is in local DB = ALREADY PAID');
-                    console.log('   ✅ No payment check needed - existence in DB = paid');
+                    //console.log('💰 PAID EVENT - User is in local DB = ALREADY PAID');
+                    //console.log('   ✅ No payment check needed - existence in DB = paid');
                 } else {
-                    console.log('🆓 NON-PAID EVENT - No payment check needed');
+                    //console.log('🆓 NON-PAID EVENT - No payment check needed');
                 }
 
-                console.log('✅ DECISION: ALLOW ENTRY - Finalizing...');
+                //console.log('✅ DECISION: ALLOW ENTRY - Finalizing...');
                 finalizeEntry(participant);
                 return;
             }
 
             // === USER NOT FOUND IN LOCAL DB ===
-            console.log('❌ USER NOT FOUND IN LOCAL DB');
-            console.log('-'.repeat(40));
-            console.log('🗄️ STEP 2: User not in local DB for this event');
-            console.log('📊 Prefilled data from QR:', JSON.stringify(prefilledData, null, 2));
+            //console.log('❌ USER NOT FOUND IN LOCAL DB');
+            //console.log('-'.repeat(40));
+            //console.log('🗄️ STEP 2: User not in local DB for this event');
+            //console.log('📊 Prefilled data from QR:', JSON.stringify(prefilledData, null, 2));
 
             // === TRY TO FETCH PAYMENT STATUS FROM FIREBASE ===
-            console.log('-'.repeat(40));
-            console.log('🔥 STEP 3: Checking Firebase for payment status...');
+            //console.log('-'.repeat(40));
+            //console.log('🔥 STEP 3: Checking Firebase for payment status...');
             let hasPaidInFirebase = false;
 
             try {
                 const pStatus = await checkPaymentStatus(uid, currentEvent);
-                console.log('🔥 Firebase payment response:', JSON.stringify(pStatus, null, 2));
+                //console.log('🔥 Firebase payment response:', JSON.stringify(pStatus, null, 2));
                 if (pStatus) {
                     hasPaidInFirebase = pStatus.verified === true;
-                    console.log('   hasPaidInFirebase:', hasPaidInFirebase);
+                    //console.log('   hasPaidInFirebase:', hasPaidInFirebase);
                 }
             } catch (e) {
-                console.log('⚠️ Firebase payment check failed:', e);
-                console.log('   Continuing with hasPaidInFirebase = false');
+                //console.log('⚠️ Firebase payment check failed:', e);
+                //console.log('   Continuing with hasPaidInFirebase = false');
             }
 
-            console.log('-'.repeat(40));
-            console.log('📝 STEP 4: Processing new user entry...');
-            console.log('   hasPaidInFirebase:', hasPaidInFirebase);
-            console.log('   isPaidEvent:', isPaidEvent);
+            //console.log('-'.repeat(40));
+            //console.log('📝 STEP 4: Processing new user entry...');
+            //console.log('   hasPaidInFirebase:', hasPaidInFirebase);
+            //console.log('   isPaidEvent:', isPaidEvent);
 
             await processNewUserEntry(uid, prefilledData, hasPaidInFirebase);
 
             async function processNewUserEntry(uid: string, prefilledData: any, alreadyPaid: boolean) {
-                console.log('-'.repeat(40));
-                console.log('📝 processNewUserEntry() called');
-                console.log('   UID:', uid);
-                console.log('   alreadyPaid:', alreadyPaid);
+                //console.log('-'.repeat(40));
+                //console.log('📝 processNewUserEntry() called');
+                //console.log('   UID:', uid);
+                //console.log('   alreadyPaid:', alreadyPaid);
 
                 // Merge data from local DB and Firebase
                 let mergedData = { ...prefilledData };
 
                 // 1. First try local DB lookup by email/phone (any event)
-                console.log('🔍 Checking local DB by email/phone for other events...');
+                //console.log('🔍 Checking local DB by email/phone for other events...');
                 if (prefilledData.prefilledEmail || prefilledData.prefilledPhone) {
                     const localParticipant = await getParticipantByEmailOrPhone(
                         prefilledData.prefilledEmail || '',
@@ -301,7 +301,7 @@ export default function QRScannerScreen({ navigation, route }: Props) {
                     );
 
                     if (localParticipant) {
-                        console.log('✅ Found user in local DB (other event):', localParticipant.name);
+                        //console.log('✅ Found user in local DB (other event):', localParticipant.name);
                         mergedData.prefilledName = mergedData.prefilledName || localParticipant.name || '';
                         mergedData.prefilledEmail = mergedData.prefilledEmail || localParticipant.email || '';
                         mergedData.prefilledPhone = mergedData.prefilledPhone || localParticipant.phone || '';
@@ -310,23 +310,23 @@ export default function QRScannerScreen({ navigation, route }: Props) {
                         mergedData.prefilledDept = mergedData.prefilledDept || localParticipant.department || '';
                         mergedData.prefilledYear = mergedData.prefilledYear || localParticipant.year || '';
                     } else {
-                        console.log('❌ No match in local DB by email/phone');
+                        //console.log('❌ No match in local DB by email/phone');
                     }
                 } else {
-                    console.log('⚠️ No email/phone in QR to lookup');
+                    //console.log('⚠️ No email/phone in QR to lookup');
                 }
 
                 // 2. Try Firebase lookup by UID if still missing critical data
-                console.log('🔍 Checking if Firebase lookup needed for user data...');
-                console.log('   Has name:', !!mergedData.prefilledName);
-                console.log('   Has college:', !!mergedData.prefilledCollege);
+                //console.log('🔍 Checking if Firebase lookup needed for user data...');
+                //console.log('   Has name:', !!mergedData.prefilledName);
+                //console.log('   Has college:', !!mergedData.prefilledCollege);
 
                 if (!mergedData.prefilledName || !mergedData.prefilledCollege) {
-                    console.log('🔥 Fetching user data from Firebase...');
+                    //console.log('🔥 Fetching user data from Firebase...');
                     try {
                         const firebaseData = await getParticipantFromFirebase(uid);
                         if (firebaseData) {
-                            console.log('✅ Found user data in Firebase:', JSON.stringify(firebaseData, null, 2));
+                            //console.log('✅ Found user data in Firebase:', JSON.stringify(firebaseData, null, 2));
                             mergedData.prefilledName = mergedData.prefilledName || firebaseData.name || firebaseData.fullName || '';
                             mergedData.prefilledEmail = mergedData.prefilledEmail || firebaseData.email || '';
                             mergedData.prefilledPhone = mergedData.prefilledPhone || firebaseData.phone || firebaseData.phoneNumber || '';
@@ -335,33 +335,33 @@ export default function QRScannerScreen({ navigation, route }: Props) {
                             mergedData.prefilledDept = mergedData.prefilledDept || firebaseData.department || firebaseData.dept || '';
                             mergedData.prefilledYear = mergedData.prefilledYear || firebaseData.year || '';
                         } else {
-                            console.log('❌ No user data in Firebase for UID:', uid);
+                            //console.log('❌ No user data in Firebase for UID:', uid);
                         }
                     } catch (e) {
-                        console.log('❌ Firebase user lookup failed:', e);
+                        //console.log('❌ Firebase user lookup failed:', e);
                     }
                 } else {
-                    console.log('✅ Already have name and college, skipping Firebase lookup');
+                    //console.log('✅ Already have name and college, skipping Firebase lookup');
                 }
 
                 // === CRITICAL DATA CHECK ===
-                console.log('-'.repeat(40));
-                console.log('📊 CRITICAL DATA CHECK:');
-                console.log('   Name:', mergedData.prefilledName || '(MISSING)');
-                console.log('   Email:', mergedData.prefilledEmail || '(none)');
-                console.log('   Phone:', mergedData.prefilledPhone || '(none)');
-                console.log('   College:', mergedData.prefilledCollege || '(MISSING)');
+                //console.log('-'.repeat(40));
+                //console.log('📊 CRITICAL DATA CHECK:');
+                //console.log('   Name:', mergedData.prefilledName || '(MISSING)');
+                //console.log('   Email:', mergedData.prefilledEmail || '(none)');
+                //console.log('   Phone:', mergedData.prefilledPhone || '(none)');
+                //console.log('   College:', mergedData.prefilledCollege || '(MISSING)');
 
                 const hasCriticalData =
                     mergedData.prefilledName &&
                     (mergedData.prefilledEmail || mergedData.prefilledPhone) &&
                     mergedData.prefilledCollege;
 
-                console.log('   Has critical data:', hasCriticalData);
+                //console.log('   Has critical data:', hasCriticalData);
 
                 // Only redirect to registration if CRITICAL data is missing
                 if (!hasCriticalData) {
-                    console.log('🚨 MISSING CRITICAL DATA - Redirecting to Registration');
+                    //console.log('🚨 MISSING CRITICAL DATA - Redirecting to Registration');
                     setProcessing(false);
                     navigation.navigate('Registration', {
                         ...mergedData,
@@ -371,18 +371,18 @@ export default function QRScannerScreen({ navigation, route }: Props) {
                     return;
                 }
 
-                console.log('✅ All critical data present');
-                console.log('-'.repeat(40));
-                console.log('🎯 FINAL DECISION:');
-                console.log('   isPaidEvent:', isPaidEvent);
-                console.log('   alreadyPaid:', alreadyPaid);
+                //console.log('✅ All critical data present');
+                //console.log('-'.repeat(40));
+                //console.log('🎯 FINAL DECISION:');
+                //console.log('   isPaidEvent:', isPaidEvent);
+                //console.log('   alreadyPaid:', alreadyPaid);
 
                 // === HAS ALL CRITICAL DATA - PROCEED ===
                 if (isPaidEvent) {
                     if (alreadyPaid) {
-                        console.log('✅ PAID EVENT + ALREADY PAID = Allow entry directly');
+                        //console.log('✅ PAID EVENT + ALREADY PAID = Allow entry directly');
                         try {
-                            console.log('📝 Inserting participant into local DB...');
+                            //console.log('📝 Inserting participant into local DB...');
                             await insertParticipant(
                                 uid,
                                 currentEvent,
@@ -401,10 +401,10 @@ export default function QRScannerScreen({ navigation, route }: Props) {
                                 '',
                                 'paid'
                             );
-                            console.log('✅ Participant inserted successfully');
+                            //console.log('✅ Participant inserted successfully');
                             const newParticipant = await getParticipantByUIDAndEvent(uid, currentEvent);
                             if (newParticipant) {
-                                console.log('✅ Finalizing entry for:', newParticipant.name);
+                                //console.log('✅ Finalizing entry for:', newParticipant.name);
                                 finalizeEntry(newParticipant);
                             }
                         } catch (error) {
@@ -412,7 +412,7 @@ export default function QRScannerScreen({ navigation, route }: Props) {
                             Alert.alert("Error", "Failed to register participant.", [{ text: "OK", onPress: resetScanState }]);
                         }
                     } else {
-                        console.log('💳 PAID EVENT + NOT PAID = Show Treasurer QR');
+                        //console.log('💳 PAID EVENT + NOT PAID = Show Treasurer QR');
                         const pendingParticipantData = {
                             uid: uid,
                             name: mergedData.prefilledName,
@@ -423,14 +423,14 @@ export default function QRScannerScreen({ navigation, route }: Props) {
                             department: mergedData.prefilledDept || '',
                             year: mergedData.prefilledYear || ''
                         };
-                        console.log('📋 Pending participant:', JSON.stringify(pendingParticipantData, null, 2));
+                        //console.log('📋 Pending participant:', JSON.stringify(pendingParticipantData, null, 2));
                         setPendingParticipant(pendingParticipantData);
                         setShowPaymentModal(true);
                     }
                 } else {
-                    console.log('🆓 NON-PAID EVENT = Auto-register and allow');
+                    //console.log('🆓 NON-PAID EVENT = Auto-register and allow');
                     try {
-                        console.log('📝 Inserting participant into local DB...');
+                        //console.log('📝 Inserting participant into local DB...');
                         await insertParticipant(
                             uid,
                             currentEvent,
@@ -449,10 +449,10 @@ export default function QRScannerScreen({ navigation, route }: Props) {
                             '',
                             'free'
                         );
-                        console.log('✅ Participant inserted successfully');
+                        //console.log('✅ Participant inserted successfully');
                         const newParticipant = await getParticipantByUIDAndEvent(uid, currentEvent);
                         if (newParticipant) {
-                            console.log('✅ Finalizing entry for:', newParticipant.name);
+                            //console.log('✅ Finalizing entry for:', newParticipant.name);
                             finalizeEntry(newParticipant);
                         }
                     } catch (error) {
@@ -470,9 +470,9 @@ export default function QRScannerScreen({ navigation, route }: Props) {
                 [{ text: "OK", onPress: resetScanState }]
             );
         } finally {
-            console.log('='.repeat(60));
-            console.log('🔍 QR SCAN COMPLETED');
-            console.log('='.repeat(60));
+            //console.log('='.repeat(60));
+            //console.log('🔍 QR SCAN COMPLETED');
+            //console.log('='.repeat(60));
             if (!showPaymentModal) {
                 setProcessing(false);
             }
@@ -485,15 +485,15 @@ export default function QRScannerScreen({ navigation, route }: Props) {
         setProcessing(true);
         try {
             const { uid, name, email, phone, college, degree, department, year } = pendingParticipant;
-            //console.log('💸 ===== PAYMENT VERIFICATION START =====');
-            //console.log('   UID:', uid);
-            //console.log('   Name:', name);
-            //console.log('   Email:', email);
-            //console.log('   Phone:', phone);
-            //console.log('   Event:', currentEvent);
+            ////console.log('💸 ===== PAYMENT VERIFICATION START =====');
+            ////console.log('   UID:', uid);
+            ////console.log('   Name:', name);
+            ////console.log('   Email:', email);
+            ////console.log('   Phone:', phone);
+            ////console.log('   Event:', currentEvent);
 
             // === STEP 1: ALWAYS UPDATE LOCAL DB FIRST (This always works) ===
-            //console.log('� Step 1: Updating local DB...');
+            ////console.log('� Step 1: Updating local DB...');
             await insertParticipant(
                 uid,
                 currentEvent,
@@ -512,7 +512,7 @@ export default function QRScannerScreen({ navigation, route }: Props) {
                 '', // team_members
                 'paid'
             );
-            //console.log('✅ Local DB updated successfully');
+            ////console.log('✅ Local DB updated successfully');
 
             // === STEP 2: Close modal and finalize ===
             setShowPaymentModal(false);
@@ -524,14 +524,14 @@ export default function QRScannerScreen({ navigation, route }: Props) {
             }
 
             setPendingParticipant(null);
-            //console.log('✅ Payment verification COMPLETE');
+            ////console.log('✅ Payment verification COMPLETE');
 
         } catch (error) {
             console.error("❌ Payment verification error:", error);
             Alert.alert("❌ Error", "Failed to save to local database.");
         } finally {
             setProcessing(false);
-            //console.log('💸 ===== PAYMENT VERIFICATION END =====');
+            ////console.log('💸 ===== PAYMENT VERIFICATION END =====');
         }
     };
 

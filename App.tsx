@@ -84,14 +84,14 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
 function App() {
     useEffect(() => {
-        console.log('🚀 [App.tsx] App mounted. Starting initialization...');
+        // console.log('🚀 [App.tsx] App mounted. Starting initialization...');
 
         // Initialize database only - sync handled by SyncManager after login
-        console.log('🛠 [App.tsx] Calling initParticipantDB()...');
+        // console.log('🛠 [App.tsx] Calling initParticipantDB()...');
         initParticipantDB();
 
         // Request storage permission for backup functionality
-        console.log('📁 [App.tsx] Calling requestStoragePermission()...');
+        // console.log('📁 [App.tsx] Calling requestStoragePermission()...');
         requestStoragePermission();
 
         // Note: Firebase sync is now handled by SyncManager in HomeScreen

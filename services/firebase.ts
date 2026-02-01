@@ -160,43 +160,43 @@ export const checkPaymentStatus = async (
     userUid: string,
     eventName: string
 ): Promise<{ isPaid: boolean; verified: boolean; inEventsArray: boolean }> => {
-    console.log('🔥 checkPaymentStatus called:', { userUid, eventName });
+    //console.log('🔥 checkPaymentStatus called:', { userUid, eventName });
     try {
         const userDoc = await getDoc(doc(db, "registrations", userUid));
 
         if (!userDoc.exists()) {
-            console.log('🔥 User not found in Firebase registrations');
+            //console.log('🔥 User not found in Firebase registrations');
             return { isPaid: false, verified: false, inEventsArray: false };
         }
 
         const data = userDoc.data();
-        console.log('🔥 Firebase user data found:', JSON.stringify(data, null, 2));
+        //console.log('🔥 Firebase user data found:', JSON.stringify(data, null, 2));
 
         const events = data.events || [];
         const payments = data.payments || [];
 
-        console.log('🔥 User events array:', events);
-        console.log('🔥 User payments array:', payments);
+        //console.log('🔥 User events array:', events);
+        //console.log('🔥 User payments array:', payments);
 
         // PRIMARY CHECK: Is this event in their events array?
         // If yes, they registered (and paid if it's a paid event)
         const inEventsArray = events.includes(eventName);
-        console.log(`🔥 Event "${eventName}" in events array:`, inEventsArray);
+        //console.log(`🔥 Event "${eventName}" in events array:`, inEventsArray);
 
         if (inEventsArray) {
-            console.log('✅ User HAS this event in their events array = PAID/REGISTERED');
+            //console.log('✅ User HAS this event in their events array = PAID/REGISTERED');
             return { isPaid: true, verified: true, inEventsArray: true };
         }
 
         // SECONDARY CHECK: Check payments array for verified payment
         for (const payment of payments) {
             if (payment.eventNames?.includes(eventName) && payment.verified) {
-                console.log('✅ Found verified payment for this event');
+                //console.log('✅ Found verified payment for this event');
                 return { isPaid: true, verified: true, inEventsArray: false };
             }
         }
 
-        console.log('❌ Event NOT found in events array or payments');
+        //console.log('❌ Event NOT found in events array or payments');
         return { isPaid: false, verified: false, inEventsArray: false };
     } catch (error) {
         console.error("❌ Failed to check payment status:", error);
@@ -253,7 +253,7 @@ export const registerUserOnSpot = async (
             })
         }, { merge: true });
 
-        // console.log(`Successfully registered on-spot in local_registrations (Write DB) for ${userUid}`);
+        // //console.log(`Successfully registered on-spot in local_registrations (Write DB) for ${userUid}`);
         return true;
     } catch (error) {
         console.error("Failed to register user on-spot:", error);
