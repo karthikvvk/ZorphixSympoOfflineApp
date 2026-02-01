@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Text, View, StyleSheet, Alert, TouchableOpacity, ActivityIndicator, Animated, Modal, Image } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -34,6 +34,7 @@ export default function QRScannerScreen({ navigation, route }: Props) {
     // Payment Modal State
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [pendingParticipant, setPendingParticipant] = useState<any>(null);
+    const [isEnrollButtonDisabled, setIsEnrollButtonDisabled] = useState(false);
 
     // Success Modal State
     const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -49,6 +50,16 @@ export default function QRScannerScreen({ navigation, route }: Props) {
 
     const currentEvent = eventContext?.eventName || '';
     const isPaidEvent = PAID_EVENTS.includes(currentEvent);
+
+    useEffect(() => {
+        if (showPaymentModal) {
+            setIsEnrollButtonDisabled(true);
+            const timer = setTimeout(() => {
+                setIsEnrollButtonDisabled(false);
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [showPaymentModal]);
 
     const showToast = (message: string, type: 'success' | 'error' = 'success') => {
         setToastMessage(message);
@@ -685,9 +696,13 @@ export default function QRScannerScreen({ navigation, route }: Props) {
                         </Text>
 
                         <TouchableOpacity
-                            style={styles.payCashButton}
+                            style={[
+                                styles.payCashButton,
+                                (processing || isEnrollButtonDisabled) && { opacity: 0.6 },
+                                isEnrollButtonDisabled && { backgroundColor: '#666' }
+                            ]}
                             onPress={handlePaymentVerified}
-                            disabled={processing}
+                            disabled={processing || isEnrollButtonDisabled}
                         >
                             {processing ? (
                                 <ActivityIndicator color="#fff" />
