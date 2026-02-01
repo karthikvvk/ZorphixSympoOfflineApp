@@ -93,15 +93,15 @@ export default function DatabaseViewerScreen() {
             let data: Participant[] = [];
             const isSuperAdmin = eventContext?.adminEmail === 'admin@zorphix.com';
 
-            // if (isSuperAdmin) {
-            data = await getAllParticipants();
-            // } else if (eventContext?.eventName) {
-            // data = await getParticipantsByEvent(eventContext.eventName);
-            // }
+            if (isSuperAdmin) {
+                data = await getAllParticipants();
+            } else if (eventContext?.eventName) {
+                data = await getParticipantsByEvent(eventContext.eventName);
+            }
 
             // Filter to only show attended/scanned participants (participated > 0)
             // DISABLED FOR TESTING: Show all participants
-            const attendedData = data//.filter(p => (p.participated || 0) > 0);
+            const attendedData = data.filter(p => (p.participated || 0) > 0);
             // const attendedData = data;
 
             // console.log('📊 Attended participants:', attendedData.length);

@@ -118,7 +118,7 @@ export default function QRScannerScreen({ navigation, route }: Props) {
             setTimeout(() => {
                 setShowSuccessModal(false);
                 resetScanState();
-            }, 2000);
+            }, 700);
         }
     };
 
