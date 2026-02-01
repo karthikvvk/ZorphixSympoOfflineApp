@@ -42,7 +42,7 @@ import { registerRootComponent } from 'expo';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet, View, Text } from 'react-native';
 import { initParticipantDB } from './services/sqlite';
-import { requestStoragePermission } from './services/BackupService';
+import { requestStoragePermission, resetPermissionState, verifyStorageAccess } from './services/BackupService';
 
 // Error Boundary
 interface ErrorBoundaryProps {
@@ -83,20 +83,40 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 }
 
 function App() {
+    const [ready, setReady] = React.useState(false);
+
     useEffect(() => {
-        // console.log('🚀 [App.tsx] App mounted. Starting initialization...');
+        const bootstrap = async () => {
+            // Initialize database
+            initParticipantDB();
 
-        // Initialize database only - sync handled by SyncManager after login
-        // console.log('🛠 [App.tsx] Calling initParticipantDB()...');
-        initParticipantDB();
+            // Reset permission request flag
+            resetPermissionState();
 
-        // Request storage permission for backup functionality
-        // console.log('📁 [App.tsx] Calling requestStoragePermission()...');
-        requestStoragePermission();
+            // GATED BOOT: Verify storage access before proceeding
+            if (Platform.OS === 'android') {
+                const hasAccess = await verifyStorageAccess();
+                if (!hasAccess) {
+                    // Blocks until permission is granted (loop won't exit otherwise)
+                    await requestStoragePermission();
+                }
+            }
 
-        // Note: Firebase sync is now handled by SyncManager in HomeScreen
-        // This avoids double sync and ensures sync only happens after login
+            // Only after verified access, allow app to render
+            setReady(true);
+        };
+
+        bootstrap();
     }, []);
+
+    // BLOCK RENDER until permission is verified
+    if (!ready) {
+        return (
+            <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+                <Text style={{ color: '#FFD700', fontSize: 16 }}>Initializing…</Text>
+            </View>
+        );
+    }
 
     return (
         <ErrorBoundary>

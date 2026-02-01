@@ -1,5 +1,5 @@
 import * as FileSystem from 'expo-file-system/legacy';
-import { Platform, PermissionsAndroid, Alert } from 'react-native';
+import { Platform, PermissionsAndroid, Alert, BackHandler } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getAllParticipants } from './sqlite';
 
@@ -9,6 +9,52 @@ const STORAGE_KEY_DIRECTORY_URI = '@zorphix_backup_directory_uri';
 
 // Store the granted directory URI for future writes
 let grantedDirectoryUri: string | null = null;
+
+// Track permission request state to prevent infinite loops
+let isRequestingPermission = false;
+const MAX_BYPASS_ATTEMPTS = 3;
+
+/**
+ * Reset permission request state - call this on app startup
+ * This ensures the flag doesn't get stuck from previous session
+ */
+export const resetPermissionState = (): void => {
+    isRequestingPermission = false;
+};
+
+/**
+ * Clear saved directory URI - for testing or permission reset
+ */
+export const clearSavedDirectoryUri = async (): Promise<void> => {
+    try {
+        await AsyncStorage.removeItem(STORAGE_KEY_DIRECTORY_URI);
+        grantedDirectoryUri = null;
+    } catch (err) {
+        //console.log('📁 Could not clear directory URI:', err);
+    }
+};
+
+/**
+ * HARD VERIFICATION: Check if storage access is actually valid
+ * Clears stale URIs if access was revoked
+ * This is a TRUTH CHECK, not a request
+ */
+export const verifyStorageAccess = async (): Promise<boolean> => {
+    if (Platform.OS !== 'android') return true;
+
+    const savedUri = await loadSavedDirectoryUri();
+    if (!savedUri) return false;
+
+    try {
+        await FileSystem.StorageAccessFramework.readDirectoryAsync(savedUri);
+        return true;
+    } catch {
+        // Access revoked or URI invalid - clear it
+        await AsyncStorage.removeItem(STORAGE_KEY_DIRECTORY_URI);
+        grantedDirectoryUri = null;
+        return false;
+    }
+};
 
 /**
  * Load saved directory URI from AsyncStorage
@@ -40,9 +86,31 @@ const saveDirectoryUri = async (uri: string): Promise<void> => {
 };
 
 /**
- * Request storage permission for Android
+ * Show the folder picker and handle the result
+ * Returns true only if a folder is actually selected
+ */
+const showFolderPicker = async (): Promise<boolean> => {
+    try {
+        const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+        if (permissions.granted) {
+            grantedDirectoryUri = permissions.directoryUri;
+            await saveDirectoryUri(permissions.directoryUri);
+            Alert.alert('✅ Success', 'Backup folder selected!');
+            return true;
+        }
+        return false;
+    } catch (err) {
+        //console.log('❌ SAF permission error:', err);
+        return false;
+    }
+};
+
+/**
+ * Request storage permission for Android with PERSISTENT LOOP
  * Uses Storage Access Framework (SAF) for Android 10+
- * This is called at app startup
+ * This function will NOT return until permission is granted OR app is closed
+ * 
+ * PREVENTS BYPASS: If user backs out of folder picker, shows warning and loops
  */
 export const requestStoragePermission = async (): Promise<boolean> => {
     //console.log('📁 [BackupService] requestStoragePermission called');
@@ -51,7 +119,20 @@ export const requestStoragePermission = async (): Promise<boolean> => {
         return true;
     }
 
+    // Reset and check if already requesting
+    // This handles edge case where flag might be stuck from hot reload
+    if (isRequestingPermission) {
+        //console.log('📁 Permission request already in progress, waiting...');
+        // Wait a bit and check again - might have been a race condition
+        await new Promise(resolve => setTimeout(resolve, 500));
+        if (isRequestingPermission) {
+            return false; // Still in progress, don't start another
+        }
+    }
+
     try {
+        isRequestingPermission = true;
+
         // 1. Check if we already have a saved directory
         const savedUri = await loadSavedDirectoryUri();
         if (savedUri) {
@@ -60,6 +141,7 @@ export const requestStoragePermission = async (): Promise<boolean> => {
                 // If permission was revoked, this will throw an error
                 await FileSystem.StorageAccessFramework.readDirectoryAsync(savedUri);
                 //console.log('✅ Verified access to saved directory');
+                isRequestingPermission = false;
                 return true;
             } catch (error) {
                 //console.log('⚠️ Saved directory access revoked or invalid. Requesting again...');
@@ -69,40 +151,50 @@ export const requestStoragePermission = async (): Promise<boolean> => {
             }
         }
 
-        // 2. Request Permission with strict result
-        return new Promise((resolve) => {
-            Alert.alert(
-                '📁 Select Backup Folder',
-                'Please select Downloads or another folder where Zorphix can save backup files. \n\nNOTE: You MUST select a folder to use the app.',
-                [
-                    {
-                        text: 'Select Folder',
-                        onPress: async () => {
-                            try {
-                                const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
-                                if (permissions.granted) {
-                                    grantedDirectoryUri = permissions.directoryUri;
-                                    await saveDirectoryUri(permissions.directoryUri);
-                                    Alert.alert('✅ Success', 'Backup folder selected!');
-                                    resolve(true); // STRICT: Only true if actually granted
-                                } else {
-                                    // User backed out of the system picker
-                                    //console.log('❌ User cancelled system picker');
-                                    resolve(false);
+        // 2. PERSISTENT PERMISSION LOOP - Does not return until granted or app closed
+        let bypassAttempts = 0;
+
+        const requestWithPersistentLoop = (): Promise<boolean> => {
+            return new Promise((resolve) => {
+
+                const ask = () => {
+                    Alert.alert(
+                        '📁 Allow Zorphix to access your storage',
+                        'Select a folder to save backups.',
+                        [
+                            {
+                                text: 'Select Folder',
+                                onPress: async () => {
+                                    const granted = await showFolderPicker();
+
+                                    if (granted) {
+                                        // ONLY place where we resolve
+                                        isRequestingPermission = false;
+                                        resolve(true);
+                                        return;
+                                    }
+
+                                    // User backed out → immediately ask again
+                                    // No counters, no state mutation
+                                    ask();
                                 }
-                            } catch (err) {
-                                //console.log('❌ SAF permission error:', err);
-                                resolve(false);
                             }
-                        }
-                    }
-                ],
-                { cancelable: false } // Prevent clicking outside
-            );
-        });
+                        ],
+                        { cancelable: false }
+                    );
+                };
+
+                ask();
+            });
+        };
+
+
+        return await requestWithPersistentLoop();
+
 
     } catch (err) {
         console.warn('📁 Storage permission error:', err);
+        isRequestingPermission = false;
         return false;
     }
 };
