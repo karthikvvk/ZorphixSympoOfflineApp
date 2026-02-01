@@ -71,17 +71,35 @@ export default function DatabaseViewerScreen() {
 
         data.forEach(p => {
             if (p.team_name && p.team_name.trim() !== '') {
-                const key = `${p.team_name}-${p.event_id}`;
-
-                if (!teams[key]) {
-                    teams[key] = {
-                        id: key,
-                        teamName: p.team_name,
-                        members: [],
-                        expanded: false
-                    };
+                // Parse team_name as JSON array (new format) or single string (old format)
+                let teamNames: string[] = [];
+                try {
+                    const parsed = JSON.parse(p.team_name);
+                    teamNames = Array.isArray(parsed) ? parsed : [p.team_name];
+                } catch {
+                    // Old format: single team name string
+                    teamNames = [p.team_name];
                 }
-                teams[key].members.push(p);
+
+                // Add participant to EACH team they belong to
+                teamNames.forEach(teamName => {
+                    if (!teamName || teamName.trim() === '') return;
+
+                    const key = `${teamName.trim()}-${p.event_id}`;
+
+                    if (!teams[key]) {
+                        teams[key] = {
+                            id: key,
+                            teamName: teamName.trim(),
+                            members: [],
+                            expanded: false
+                        };
+                    }
+                    // Avoid duplicate entries (same user appearing twice in same team)
+                    if (!teams[key].members.some(m => m.uid === p.uid && m.event_id === p.event_id)) {
+                        teams[key].members.push(p);
+                    }
+                });
             }
         });
 
