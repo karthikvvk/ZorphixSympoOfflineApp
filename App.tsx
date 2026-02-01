@@ -42,6 +42,7 @@ import { registerRootComponent } from 'expo';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet, View, Text } from 'react-native';
 import { initParticipantDB } from './services/sqlite';
+import { requestStoragePermission } from './services/BackupService';
 
 // Error Boundary
 interface ErrorBoundaryProps {
@@ -83,11 +84,15 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
 function App() {
     useEffect(() => {
-        // console.log('🚀 [App.tsx] App mounted. Starting initialization...');
+        console.log('🚀 [App.tsx] App mounted. Starting initialization...');
 
         // Initialize database only - sync handled by SyncManager after login
-        // console.log('🛠 [App.tsx] Calling initParticipantDB()...');
+        console.log('🛠 [App.tsx] Calling initParticipantDB()...');
         initParticipantDB();
+
+        // Request storage permission for backup functionality
+        console.log('📁 [App.tsx] Calling requestStoragePermission()...');
+        requestStoragePermission();
 
         // Note: Firebase sync is now handled by SyncManager in HomeScreen
         // This avoids double sync and ensures sync only happens after login

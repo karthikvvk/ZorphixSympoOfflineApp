@@ -7,6 +7,7 @@ import { RootStackParamList, PAID_EVENTS } from '../navigation/types';
 import { useEventContext } from '../navigation/EventContext';
 import { getParticipantByUID, getParticipantByUIDAndEvent, incrementParticipation, insertParticipant, checkParticipantExists, getParticipantByEmailOrPhone } from '../services/sqlite';
 import { checkPaymentStatus, getParticipantFromFirebase, registerUserOnSpot } from '../services/firebase';
+import { silentBackup } from '../services/BackupService';
 // import { Modal, Image } from 'react-native'; // Removed redundant import
 import { RouteProp } from '@react-navigation/native';
 
@@ -78,7 +79,8 @@ export default function QRScannerScreen({ navigation, route }: Props) {
 
     const finalizeEntry = (participant: any) => {
         incrementParticipation(participant.uid, currentEvent, teamNameParam);
-        // //console.log(`✅ Incremented participation for ${participant.name}`);
+        // Trigger silent backup after each enrollment
+        silentBackup();
 
         if (mode === 'TEAM') {
             const newCount = scannedCount + 1;

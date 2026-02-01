@@ -391,10 +391,13 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                         <Text style={styles.menuItemText}>Sync with Server</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
-                        <MaterialCommunityIcons name="logout" size={24} color="#FF6B6B" style={{ marginRight: 15 }} />
-                        <Text style={[styles.menuItemText, { color: '#FF6B6B' }]}>Logout</Text>
-                    </TouchableOpacity>
+                    {/* Logout - Admin Only */}
+                    {eventContext?.adminEmail === 'admin@zorphix.com' && (
+                        <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
+                            <MaterialCommunityIcons name="logout" size={24} color="#FF6B6B" style={{ marginRight: 15 }} />
+                            <Text style={[styles.menuItemText, { color: '#FF6B6B' }]}>Logout</Text>
+                        </TouchableOpacity>
+                    )}
                 </Animated.View>
 
                 {/* Overlay for closing menu when open */}
