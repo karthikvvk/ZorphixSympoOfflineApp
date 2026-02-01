@@ -153,7 +153,7 @@ export const syncOnspotToFirebase = async () => {
                     department: p.department || '',
                     year: p.year || '',
                     events: arrayUnion(p.event_id), // Ensure event is added
-                    team_names: teamNames, // Array of team names
+                    team_names: arrayUnion(...teamNames), // Merge with existing teams
                     payments: p.payment_verified ? [{
                         amount: 0,
                         date: new Date().toISOString(),
