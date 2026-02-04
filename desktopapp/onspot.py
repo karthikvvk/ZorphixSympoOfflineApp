@@ -194,6 +194,7 @@ DEPARTMENT_OPTIONS = [
 ]
 
 
+
 COLLEGE_OPTIONS = [
 
 "University Departments of Anna University Chennai - CEG Campus" ,
@@ -669,7 +670,6 @@ COLLEGE_OPTIONS = [
 "Latha Mathavan Engineering College" ,
 "Other"]
 
-
 # ================= ENHANCED SEARCHABLE DROPDOWN =================
 def is_valid_email(email: str) -> bool:
     email = email.strip()
@@ -766,14 +766,24 @@ class EnhancedSearchableDropdown(tk.Frame):
             pady=4
         )
         
-        # Bindings
+        # Bindings - only bind dropdown-specific navigation
         self.entry.bind("<FocusIn>", self._on_focus_in)
         self.entry.bind("<FocusOut>", self._on_focus_out)
         self.entry.bind("<KeyRelease>", self._on_key_release)
+        
+        # Only intercept Down/Up when listbox is visible
         self.entry.bind("<Down>", self._arrow_down)
         self.entry.bind("<Up>", self._arrow_up)
         self.entry.bind("<Return>", self._select_current)
         self.entry.bind("<Escape>", self._hide_listbox)
+        
+        # Enable Ctrl+A
+        def select_all(e):
+            if not self.is_placeholder:
+                self.entry.select_range(0, tk.END)
+                self.entry.icursor(tk.END)
+            return "break"
+        self.entry.bind("<Control-a>", select_all)
         
         self.arrow.bind("<Button-1>", self._toggle_listbox)
         self.arrow.bind("<Enter>", self._on_arrow_enter)
@@ -868,7 +878,7 @@ class EnhancedSearchableDropdown(tk.Frame):
     
     def _on_key_release(self, event=None):
         # Ignore navigation keys
-        if event and event.keysym in ('Down', 'Up', 'Return', 'Escape'):
+        if event and event.keysym in ('Down', 'Up', 'Return', 'Escape', 'Left', 'Right', 'Home', 'End'):
             return
         
         if not self.is_placeholder:
@@ -920,7 +930,7 @@ class EnhancedSearchableDropdown(tk.Frame):
     def _arrow_down(self, event=None):
         if not self.listbox_visible:
             self._show_listbox()
-            return
+            return "break"
         
         current = self.listbox.curselection()
         if current:
@@ -933,10 +943,11 @@ class EnhancedSearchableDropdown(tk.Frame):
         else:
             self.listbox.selection_set(0)
             self.listbox.activate(0)
+        return "break"
     
     def _arrow_up(self, event=None):
         if not self.listbox_visible:
-            return
+            return "break"
         
         current = self.listbox.curselection()
         if current:
@@ -946,6 +957,7 @@ class EnhancedSearchableDropdown(tk.Frame):
                 self.listbox.selection_set(prev_idx)
                 self.listbox.activate(prev_idx)
                 self.listbox.see(prev_idx)
+        return "break"
     
     def _select_current(self, event=None):
         if not self.listbox.curselection():
@@ -1131,6 +1143,14 @@ class App(tk.Tk):
         
         entry.bind("<Enter>", on_enter)
         entry.bind("<Leave>", on_leave)
+        
+        # Enable Ctrl+A to select all
+        def select_all(e):
+            entry.select_range(0, tk.END)
+            entry.icursor(tk.END)
+            return "break"
+        
+        entry.bind("<Control-a>", select_all)
         
         return entry
     
@@ -1425,6 +1445,13 @@ class App(tk.Tk):
             borderwidth=0
         )
         entry.pack(fill="x", ipady=8, padx=12)
+        
+        # Enable Ctrl+A
+        def select_all(e):
+            entry.select_range(0, tk.END)
+            entry.icursor(tk.END)
+            return "break"
+        entry.bind("<Control-a>", select_all)
         
         # Results listbox
         scrollbar = tk.Scrollbar(container)
